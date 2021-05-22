@@ -356,14 +356,14 @@ pdf_with_text_separated_tbl
 <p>As you can see, we received a <em>warning</em> about missing pieces that were now filled with <em>NA</em>. Since I don’t see a proggammable way out of this situation, we’ll try to fix things using the <a href="https://dillonhammill.github.io/DataEditR/"><strong>DataEditR</strong></a> package. Only one quick <em>mutate()</em> to change the rank and stream columns’ types from text to numeric:</p>
 <pre class="r"><code>pdf_with_text_separated_tbl &lt;- pdf_with_text_separated_tbl %&gt;% 
   mutate(
-    rank    = as.integer(rank),
+    rank    = as.numeric(rank),
     streams = as.numeric(streams)
   )
 
 pdf_with_text_separated_tbl
 ## # A tibble: 100 x 4
 ##    artist                            track                          rank streams
-##    &lt;chr&gt;                             &lt;chr&gt;                         &lt;int&gt;   &lt;dbl&gt;
+##    &lt;chr&gt;                             &lt;chr&gt;                         &lt;dbl&gt;   &lt;dbl&gt;
 ##  1 Lil Nas X                         MONTERO (Call Me By Your Na~      1  275091
 ##  2 Blind Channel Dark Side           2                            260403      NA
 ##  3 SANNI                             Pettäjä                           3  255770
