@@ -1,0 +1,425 @@
+---
+title: 'Mining Text from PDF Files, Part 1: PDF with Text'
+author: "Antti Rask"
+date: '2021-05-22'
+categories: R
+tags:
+- pdf
+- pdftools
+- regex
+- tidyverse
+- writexl
+- DataEditR
+lastmod: '2021-05-22T17:02:56+03:00'
+slug: mining-text-from-pdf-files-part-1-pdf-with-text
+---
+
+
+
+<div id="intro" class="section level1">
+<h1>Intro</h1>
+<p>I wanted to find out how to mine text from PDF files with R. I’m experimenting with different formats, which will each have their own blog post. This first one is about PDF files with just text in them. The second one will be about extracting text in tables and in the third one I will extract text that’s in a picture inside a PDF file.</p>
+<p>I’m assuming you’re using RStudio as your IDE (Integrated Development Environment). I’m sure most of this can be done with using something else as well, but I don’t know how the DataEditR part, for instance, will work in another environment.</p>
+</div>
+<div id="pdftools-in-action" class="section level1">
+<h1><strong>pdftools</strong> in action</h1>
+<p>For this experiment, I’m using this cool package called <a href="https://docs.ropensci.org/pdftools/">pdftools</a>. I know I’m only scratching the surface here and if you’d like to know more, you should probably read the package’s documentation.</p>
+<div id="lets-get-ready" class="section level2">
+<h2>1. Let’s get ready</h2>
+<p>Before we go any further, I’m going to load the packages we’ll be needing today:</p>
+<pre class="r"><code>library(pdftools)
+# The main package for this operation
+
+library(tidyverse)
+# Prerequisite to everything
+
+library(DataEditR)
+# More about this one when we get there, but basically &#39;Excel in R&#39;
+
+library(writexl)
+# My go-to package for writing Excel files</code></pre>
+<p>I’ll also show you the raw material. If you’d like to try this at home, you can save the PDF file shown below. What we’re looking at here is <a href="https://spotifycharts.com/regional/fi/weekly/2021-05-14--2021-05-21">(Spotify’s weekly top 100 chart for Finland (2021-05-14 - 2021-05-21)</a>, but in text form.</p>
+<p>As you can see, the formatting is a bit rough and (spoiler alert) it will cause us some problems along the way. Let’s see how we’ll be able to handle them.</p>
+<div class="figure">
+<embed src="images/pdf_with_text.pdf" style="width:100.0%" />
+<p class="caption">fig. 1 - The raw material</p>
+</div>
+</div>
+<div id="read-in-the-pdf-file" class="section level2">
+<h2>2. Read in the PDF file</h2>
+<p>Next, let’s read in the pdf text file as a character vector using <em>pdf_text()</em>:</p>
+<pre class="r"><code>pdf_with_text &lt;- pdf_text(&quot;index_files/pdf_with_text.pdf&quot;)
+pdf_with_text
+## [1] &quot;artist        track           rank          streams\n\nLil Nas X     MONTERO (Call Me By Your Name)               1             275091\n\nBlind Channel Dark Side       2             260403\n\nSANNI         Pettäjä         3             255770\n\nHaloo Helsinki!               Piilotan mun kyyneleet       4             238089\n\nDoja Cat      Kiss Me More (feat. SZA)      5              236820\n\nCledos, BEHM Life (Sun luo) 6               224839\n\nMasked Wolf Astronaut In The Ocean          7              202630\n\nBEHM          Frida           8             200910\n\nPyhimys, Eino Grön            Hyvät hautajaiset            9             196586\n\ncostee        Ne voi liittyy (feat. BIZI)   10             194852\n\nRiton, Nightcrawlers          Friday (feat. Mufasa &amp; Hypeman) - Dopamine Re-Edit        11            186470\n\nTion Wayne, Russ Millions     Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x3), Bugzy Malone, Buni, Fivio Foreign &amp; Darkoo]   12   182369\n\nNathan Evans Wellerman - Sea Shanty / 220 KID x Billen Ted Remix         13             182353\n\nDua Lipa      Levitating (feat. DaBaby)     14             180922\n\nEtta          Prinsessa       15            175544\n\nBEHM          Hei rakas       16            168578\n\nJustin Bieber Peaches (feat. Daniel Caesar &amp; Giveon)       17            167833\n\nKeko Salata   Kaipaan sua (feat. Boyat &amp; Samuli Heimo) 18                158543\n&quot;                                               
+## [2] &quot;YB026, Nuteh Jonez            Steppasin Partyy        19       154737\n\nibe             Tunteet       20             147176\n\nBillie Eilish   Your Power    21             143926\n\nThe Weeknd Save Your Tears (with Ariana Grande) (Remix)        22       142865\n\nwilliam         Penelope (feat. Clever)      23       142381\n\nPolo G          RAPSTAR       24             135300\n\nOlivia Rodrigo good 4 u       25             132459\n\nATB, Topic, A7S               Your Love (9PM)         26       132176\n\nMajestic, Boney M.            Rasputin       27       129677\n\nP!nk, Willow Sage Hart        Cover Me In Sunshine    28       126374\n\nABREU           20 Ave Mariaa 29             125031\n\nwilliam         Flyys         30             121863\n\nBrädi           Keväät        31             121534\n\nAurora          Vettä kaivoon (feat. Keko Salata)     32       119095\n\nTeflon Brothers, Pandora      I Love You     33       117764\n\nPortion Boys Kyläbaari        34             116293\n\nLauri Tähkä     Aavikko       35             114680\n\nTiësto          The Business 36              111908\n\nPihlaja         Paha Barbi    37             110442\n&quot;                                                                                                                                                                                                                                                                                                       
+## [3] &quot;ibe, Blacflaco, Elastinen     WEST SIDE BABY             38       110222\n\nBEHM           Päästä varpaisiin           39            110066\n\nBEHM           Lupaan         40           109843\n\nIlta           Kelle mä soitan             41            108466\n\nThe Weeknd Blinding Lights 42              106940\n\nAlan Walker, Conor Maynard Believers       43            106449\n\nKaija Koo      Sateenkaari pimeessä        44            104221\n\nBEHM           Tivolit        45           103219\n\nColdplay       Higher Power 46             102244\n\nTom Odell      Another Love 47             99598\n\nAva Max        My Head &amp; My Heart          48            96021\n\nBella Poarch Build a Bitch 49              95933\n\nPyrythekid     Epäkohtelias (feat. Axel Kala &amp; Gettomasa) 50      93762\n\nThe Weeknd Save Your Tears                 51            93498\n\nNightshift, Pyhimys, ibe, Dreas            Kivullisii    52       90460\n\nJVG            Ikuinen vappu 53            89440\n\nAURORA         Runaway        54           83727\n\nOlivia Rodrigo drivers license 55          83344\n\nEllinoora      Dinosauruksii 56            82398\n&quot;                                                                                                                                                                                                                                                                                                                            
+## [4] &quot;Kube            100              57                82145\n\nJanna          Maailma meidän jälkeen              58                81706\n\nDuncan Laurence                  Arcade            59                81427\n\nGasellit, Karri Koira            Me ei mennä rikki                   60      78202\n\nArttu Wiskari Tässäkö tää oli? (feat. Leavings-Orkesteri) 61                 77709\n\nJ. Cole        amari             62                76892\n\nOlivia Rodrigo deja vu           63                75942\n\nBruno Mars, Anderson .Paak, Silk Sonic             Leave The Door Open       64      75299\n\nHapporadio     Jos et olis siinä                   65                74306\n\nOfenbach        Wasted Love (feat. Lagique) 66                       74285\n\nibe            molemmat          67                73492\n\nJ. Cole        p r i d e . i s . t h e . d e v i l (with Lil Baby)   68      72613\n\nBEHM           Minä vai maailma (feat. Keko Salata)                  69      71289\n\nHaloo Helsinki!                  Lady Domina 70                      70890\n\nErika Vikman Syntisten pöytä                       71                70638\n\nScurtDae        Back to Life (Birthdae)            72                70592\n\nJ. Cole        m y . l i f e (with 21 Savage &amp; Morray)               73      70345\n\nThe Kid LAROI WITHOUT YOU                          74                68620\n\nImagine Dragons                  Follow You        75                67793\n&quot;
+## [5] &quot;Erin          Niinku koko ajan             76           67644\n\nElias Kaskinen Kerran elämässä             77           67296\n\nVIIVI         Lääke            78          67076\n\nJ. Cole       i n t e r l u d e 79         66523\n\nKuningasidea Pohjolan tuulet               80           66243\n\nChebaleba     Kesäfiilistelyy (feat. RicoWamos)         81           65072\n\nCardi B       Up               82          64987\n\nStudio Killers Jenny (I Wanna Ruin Our Friendship)      83           64202\n\nElastinen     Epäröimättä hetkeekään (feat. Jenni Vartiainen)        84            63930\n\nGettomasa     Silmät           85          63448\n\nMikael GabrielIntiaanikesä     86          62128\n\nOneRepublic Run                87          62096\n\nKymppilinja   Minä (feat. Mariska)         88           61114\n\nSamu Haber Täältä tullaan 89               60235\n\nSurf Curse    Freaks           90          59496\n\nMartin Garrix We Are The People (feat. Bono &amp; The Edge) - Official UEFA EURO 2020 Song     91   58058\n\nGlass Animals Heat Waves       92          57694\n\n24kGoldn      Mood (feat. iann dior)       93           57086\n\nAxel Kala     Moni meist       94          55938\n&quot;                                                                                                                                                                                                                                                                            
+## [6] &quot;Poju          Esson baariin 95             55892\n\nDMNDS, Strange Fruits Music, Fallen Roses Calabria (feat. Lujavo &amp; Nito-Onna)        96   55805\n\nAleksanteri Hakaniemi       Bonsaipuu      97            55657\n\nDJ Khaled     I DID IT (feat. Post Malone, Megan Thee Stallion, Lil Baby &amp; DaBaby)   98   55644\n\nKeko Salata   Vanha (feat. BEHM)           99            55451\n\nKlamydia      Pienen pojan elämää          100           54190\n&quot;</code></pre>
+<p>As you can see, we got the text, but it’s in six big chunks that need to be split up, before it’s of any use to us. Which brings me to…</p>
+</div>
+<div id="split-the-character-vector-into-a-list" class="section level2">
+<h2>3. Split the character vector into a <em>list</em></h2>
+<p>We should now create a <em>list</em> by splitting the character vector with <em>strsplit</em> (using those row change marks (\ + n):</p>
+<pre class="r"><code>pdf_with_text_list &lt;- strsplit(pdf_with_text, split = &quot;\n&quot;)
+
+pdf_with_text_list
+## [[1]]
+##  [1] &quot;artist        track           rank          streams&quot;                                                                                    
+##  [2] &quot;&quot;                                                                                                                                       
+##  [3] &quot;Lil Nas X     MONTERO (Call Me By Your Name)               1             275091&quot;                                                        
+##  [4] &quot;&quot;                                                                                                                                       
+##  [5] &quot;Blind Channel Dark Side       2             260403&quot;                                                                                     
+##  [6] &quot;&quot;                                                                                                                                       
+##  [7] &quot;SANNI         Pettäjä         3             255770&quot;                                                                                     
+##  [8] &quot;&quot;                                                                                                                                       
+##  [9] &quot;Haloo Helsinki!               Piilotan mun kyyneleet       4             238089&quot;                                                        
+## [10] &quot;&quot;                                                                                                                                       
+## [11] &quot;Doja Cat      Kiss Me More (feat. SZA)      5              236820&quot;                                                                      
+## [12] &quot;&quot;                                                                                                                                       
+## [13] &quot;Cledos, BEHM Life (Sun luo) 6               224839&quot;                                                                                     
+## [14] &quot;&quot;                                                                                                                                       
+## [15] &quot;Masked Wolf Astronaut In The Ocean          7              202630&quot;                                                                      
+## [16] &quot;&quot;                                                                                                                                       
+## [17] &quot;BEHM          Frida           8             200910&quot;                                                                                     
+## [18] &quot;&quot;                                                                                                                                       
+## [19] &quot;Pyhimys, Eino Grön            Hyvät hautajaiset            9             196586&quot;                                                        
+## [20] &quot;&quot;                                                                                                                                       
+## [21] &quot;costee        Ne voi liittyy (feat. BIZI)   10             194852&quot;                                                                      
+## [22] &quot;&quot;                                                                                                                                       
+## [23] &quot;Riton, Nightcrawlers          Friday (feat. Mufasa &amp; Hypeman) - Dopamine Re-Edit        11            186470&quot;                           
+## [24] &quot;&quot;                                                                                                                                       
+## [25] &quot;Tion Wayne, Russ Millions     Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x3), Bugzy Malone, Buni, Fivio Foreign &amp; Darkoo]   12   182369&quot;
+## [26] &quot;&quot;                                                                                                                                       
+## [27] &quot;Nathan Evans Wellerman - Sea Shanty / 220 KID x Billen Ted Remix         13             182353&quot;                                         
+## [28] &quot;&quot;                                                                                                                                       
+## [29] &quot;Dua Lipa      Levitating (feat. DaBaby)     14             180922&quot;                                                                      
+## [30] &quot;&quot;                                                                                                                                       
+## [31] &quot;Etta          Prinsessa       15            175544&quot;                                                                                     
+## [32] &quot;&quot;                                                                                                                                       
+## [33] &quot;BEHM          Hei rakas       16            168578&quot;                                                                                     
+## [34] &quot;&quot;                                                                                                                                       
+## [35] &quot;Justin Bieber Peaches (feat. Daniel Caesar &amp; Giveon)       17            167833&quot;                                                        
+## [36] &quot;&quot;                                                                                                                                       
+## [37] &quot;Keko Salata   Kaipaan sua (feat. Boyat &amp; Samuli Heimo) 18                158543&quot;                                                        
+## 
+## [[2]]
+##  [1] &quot;YB026, Nuteh Jonez            Steppasin Partyy        19       154737&quot;         
+##  [2] &quot;&quot;                                                                              
+##  [3] &quot;ibe             Tunteet       20             147176&quot;                           
+##  [4] &quot;&quot;                                                                              
+##  [5] &quot;Billie Eilish   Your Power    21             143926&quot;                           
+##  [6] &quot;&quot;                                                                              
+##  [7] &quot;The Weeknd Save Your Tears (with Ariana Grande) (Remix)        22       142865&quot;
+##  [8] &quot;&quot;                                                                              
+##  [9] &quot;william         Penelope (feat. Clever)      23       142381&quot;                  
+## [10] &quot;&quot;                                                                              
+## [11] &quot;Polo G          RAPSTAR       24             135300&quot;                           
+## [12] &quot;&quot;                                                                              
+## [13] &quot;Olivia Rodrigo good 4 u       25             132459&quot;                           
+## [14] &quot;&quot;                                                                              
+## [15] &quot;ATB, Topic, A7S               Your Love (9PM)         26       132176&quot;         
+## [16] &quot;&quot;                                                                              
+## [17] &quot;Majestic, Boney M.            Rasputin       27       129677&quot;                  
+## [18] &quot;&quot;                                                                              
+## [19] &quot;P!nk, Willow Sage Hart        Cover Me In Sunshine    28       126374&quot;         
+## [20] &quot;&quot;                                                                              
+## [21] &quot;ABREU           20 Ave Mariaa 29             125031&quot;                           
+## [22] &quot;&quot;                                                                              
+## [23] &quot;william         Flyys         30             121863&quot;                           
+## [24] &quot;&quot;                                                                              
+## [25] &quot;Brädi           Keväät        31             121534&quot;                           
+## [26] &quot;&quot;                                                                              
+## [27] &quot;Aurora          Vettä kaivoon (feat. Keko Salata)     32       119095&quot;         
+## [28] &quot;&quot;                                                                              
+## [29] &quot;Teflon Brothers, Pandora      I Love You     33       117764&quot;                  
+## [30] &quot;&quot;                                                                              
+## [31] &quot;Portion Boys Kyläbaari        34             116293&quot;                           
+## [32] &quot;&quot;                                                                              
+## [33] &quot;Lauri Tähkä     Aavikko       35             114680&quot;                           
+## [34] &quot;&quot;                                                                              
+## [35] &quot;Tiësto          The Business 36              111908&quot;                           
+## [36] &quot;&quot;                                                                              
+## [37] &quot;Pihlaja         Paha Barbi    37             110442&quot;                           
+## 
+## [[3]]
+##  [1] &quot;ibe, Blacflaco, Elastinen     WEST SIDE BABY             38       110222&quot;
+##  [2] &quot;&quot;                                                                        
+##  [3] &quot;BEHM           Päästä varpaisiin           39            110066&quot;         
+##  [4] &quot;&quot;                                                                        
+##  [5] &quot;BEHM           Lupaan         40           109843&quot;                       
+##  [6] &quot;&quot;                                                                        
+##  [7] &quot;Ilta           Kelle mä soitan             41            108466&quot;         
+##  [8] &quot;&quot;                                                                        
+##  [9] &quot;The Weeknd Blinding Lights 42              106940&quot;                       
+## [10] &quot;&quot;                                                                        
+## [11] &quot;Alan Walker, Conor Maynard Believers       43            106449&quot;         
+## [12] &quot;&quot;                                                                        
+## [13] &quot;Kaija Koo      Sateenkaari pimeessä        44            104221&quot;         
+## [14] &quot;&quot;                                                                        
+## [15] &quot;BEHM           Tivolit        45           103219&quot;                       
+## [16] &quot;&quot;                                                                        
+## [17] &quot;Coldplay       Higher Power 46             102244&quot;                       
+## [18] &quot;&quot;                                                                        
+## [19] &quot;Tom Odell      Another Love 47             99598&quot;                        
+## [20] &quot;&quot;                                                                        
+## [21] &quot;Ava Max        My Head &amp; My Heart          48            96021&quot;          
+## [22] &quot;&quot;                                                                        
+## [23] &quot;Bella Poarch Build a Bitch 49              95933&quot;                        
+## [24] &quot;&quot;                                                                        
+## [25] &quot;Pyrythekid     Epäkohtelias (feat. Axel Kala &amp; Gettomasa) 50      93762&quot; 
+## [26] &quot;&quot;                                                                        
+## [27] &quot;The Weeknd Save Your Tears                 51            93498&quot;          
+## [28] &quot;&quot;                                                                        
+## [29] &quot;Nightshift, Pyhimys, ibe, Dreas            Kivullisii    52       90460&quot; 
+## [30] &quot;&quot;                                                                        
+## [31] &quot;JVG            Ikuinen vappu 53            89440&quot;                        
+## [32] &quot;&quot;                                                                        
+## [33] &quot;AURORA         Runaway        54           83727&quot;                        
+## [34] &quot;&quot;                                                                        
+## [35] &quot;Olivia Rodrigo drivers license 55          83344&quot;                        
+## [36] &quot;&quot;                                                                        
+## [37] &quot;Ellinoora      Dinosauruksii 56            82398&quot;                        
+## 
+## [[4]]
+##  [1] &quot;Kube            100              57                82145&quot;                                  
+##  [2] &quot;&quot;                                                                                          
+##  [3] &quot;Janna          Maailma meidän jälkeen              58                81706&quot;                
+##  [4] &quot;&quot;                                                                                          
+##  [5] &quot;Duncan Laurence                  Arcade            59                81427&quot;                
+##  [6] &quot;&quot;                                                                                          
+##  [7] &quot;Gasellit, Karri Koira            Me ei mennä rikki                   60      78202&quot;        
+##  [8] &quot;&quot;                                                                                          
+##  [9] &quot;Arttu Wiskari Tässäkö tää oli? (feat. Leavings-Orkesteri) 61                 77709&quot;        
+## [10] &quot;&quot;                                                                                          
+## [11] &quot;J. Cole        amari             62                76892&quot;                                  
+## [12] &quot;&quot;                                                                                          
+## [13] &quot;Olivia Rodrigo deja vu           63                75942&quot;                                  
+## [14] &quot;&quot;                                                                                          
+## [15] &quot;Bruno Mars, Anderson .Paak, Silk Sonic             Leave The Door Open       64      75299&quot;
+## [16] &quot;&quot;                                                                                          
+## [17] &quot;Happoradio     Jos et olis siinä                   65                74306&quot;                
+## [18] &quot;&quot;                                                                                          
+## [19] &quot;Ofenbach        Wasted Love (feat. Lagique) 66                       74285&quot;                
+## [20] &quot;&quot;                                                                                          
+## [21] &quot;ibe            molemmat          67                73492&quot;                                  
+## [22] &quot;&quot;                                                                                          
+## [23] &quot;J. Cole        p r i d e . i s . t h e . d e v i l (with Lil Baby)   68      72613&quot;        
+## [24] &quot;&quot;                                                                                          
+## [25] &quot;BEHM           Minä vai maailma (feat. Keko Salata)                  69      71289&quot;        
+## [26] &quot;&quot;                                                                                          
+## [27] &quot;Haloo Helsinki!                  Lady Domina 70                      70890&quot;                
+## [28] &quot;&quot;                                                                                          
+## [29] &quot;Erika Vikman Syntisten pöytä                       71                70638&quot;                
+## [30] &quot;&quot;                                                                                          
+## [31] &quot;ScurtDae        Back to Life (Birthdae)            72                70592&quot;                
+## [32] &quot;&quot;                                                                                          
+## [33] &quot;J. Cole        m y . l i f e (with 21 Savage &amp; Morray)               73      70345&quot;        
+## [34] &quot;&quot;                                                                                          
+## [35] &quot;The Kid LAROI WITHOUT YOU                          74                68620&quot;                
+## [36] &quot;&quot;                                                                                          
+## [37] &quot;Imagine Dragons                  Follow You        75                67793&quot;                
+## 
+## [[5]]
+##  [1] &quot;Erin          Niinku koko ajan             76           67644&quot;                                        
+##  [2] &quot;&quot;                                                                                                     
+##  [3] &quot;Elias Kaskinen Kerran elämässä             77           67296&quot;                                        
+##  [4] &quot;&quot;                                                                                                     
+##  [5] &quot;VIIVI         Lääke            78          67076&quot;                                                     
+##  [6] &quot;&quot;                                                                                                     
+##  [7] &quot;J. Cole       i n t e r l u d e 79         66523&quot;                                                     
+##  [8] &quot;&quot;                                                                                                     
+##  [9] &quot;Kuningasidea Pohjolan tuulet               80           66243&quot;                                        
+## [10] &quot;&quot;                                                                                                     
+## [11] &quot;Chebaleba     Kesäfiilistelyy (feat. RicoWamos)         81           65072&quot;                           
+## [12] &quot;&quot;                                                                                                     
+## [13] &quot;Cardi B       Up               82          64987&quot;                                                     
+## [14] &quot;&quot;                                                                                                     
+## [15] &quot;Studio Killers Jenny (I Wanna Ruin Our Friendship)      83           64202&quot;                           
+## [16] &quot;&quot;                                                                                                     
+## [17] &quot;Elastinen     Epäröimättä hetkeekään (feat. Jenni Vartiainen)        84            63930&quot;             
+## [18] &quot;&quot;                                                                                                     
+## [19] &quot;Gettomasa     Silmät           85          63448&quot;                                                     
+## [20] &quot;&quot;                                                                                                     
+## [21] &quot;Mikael GabrielIntiaanikesä     86          62128&quot;                                                     
+## [22] &quot;&quot;                                                                                                     
+## [23] &quot;OneRepublic Run                87          62096&quot;                                                     
+## [24] &quot;&quot;                                                                                                     
+## [25] &quot;Kymppilinja   Minä (feat. Mariska)         88           61114&quot;                                        
+## [26] &quot;&quot;                                                                                                     
+## [27] &quot;Samu Haber Täältä tullaan 89               60235&quot;                                                     
+## [28] &quot;&quot;                                                                                                     
+## [29] &quot;Surf Curse    Freaks           90          59496&quot;                                                     
+## [30] &quot;&quot;                                                                                                     
+## [31] &quot;Martin Garrix We Are The People (feat. Bono &amp; The Edge) - Official UEFA EURO 2020 Song     91   58058&quot;
+## [32] &quot;&quot;                                                                                                     
+## [33] &quot;Glass Animals Heat Waves       92          57694&quot;                                                     
+## [34] &quot;&quot;                                                                                                     
+## [35] &quot;24kGoldn      Mood (feat. iann dior)       93           57086&quot;                                        
+## [36] &quot;&quot;                                                                                                     
+## [37] &quot;Axel Kala     Moni meist       94          55938&quot;                                                     
+## 
+## [[6]]
+##  [1] &quot;Poju          Esson baariin 95             55892&quot;                                               
+##  [2] &quot;&quot;                                                                                               
+##  [3] &quot;DMNDS, Strange Fruits Music, Fallen Roses Calabria (feat. Lujavo &amp; Nito-Onna)        96   55805&quot;
+##  [4] &quot;&quot;                                                                                               
+##  [5] &quot;Aleksanteri Hakaniemi       Bonsaipuu      97            55657&quot;                                 
+##  [6] &quot;&quot;                                                                                               
+##  [7] &quot;DJ Khaled     I DID IT (feat. Post Malone, Megan Thee Stallion, Lil Baby &amp; DaBaby)   98   55644&quot;
+##  [8] &quot;&quot;                                                                                               
+##  [9] &quot;Keko Salata   Vanha (feat. BEHM)           99            55451&quot;                                 
+## [10] &quot;&quot;                                                                                               
+## [11] &quot;Klamydia      Pienen pojan elämää          100           54190&quot;</code></pre>
+<p>Now, that looks better already, but we’re still not quite there. We want to get all the rows together.</p>
+</div>
+<div id="unlist-and-create-a-tibble" class="section level2">
+<h2>4. <em>Unlist()</em> and create a <em>tibble</em></h2>
+<p>Let’s start by <em>unlisting</em> the <em>list</em> and creating a <em>tibble</em> (a special kind of a <em>data frame</em>):</p>
+<pre class="r"><code>pdf_with_text_tbl &lt;- as_tibble(unlist(pdf_with_text_list))
+
+pdf_with_text_tbl
+## # A tibble: 196 x 1
+##    value                                                                        
+##    &lt;chr&gt;                                                                        
+##  1 &quot;artist        track           rank          streams&quot;                        
+##  2 &quot;&quot;                                                                           
+##  3 &quot;Lil Nas X     MONTERO (Call Me By Your Name)               1             27~
+##  4 &quot;&quot;                                                                           
+##  5 &quot;Blind Channel Dark Side       2             260403&quot;                         
+##  6 &quot;&quot;                                                                           
+##  7 &quot;SANNI         Pettäjä         3             255770&quot;                         
+##  8 &quot;&quot;                                                                           
+##  9 &quot;Haloo Helsinki!               Piilotan mun kyyneleet       4             23~
+## 10 &quot;&quot;                                                                           
+## # ... with 186 more rows</code></pre>
+<p>Nice! We now have all 196 rows together. But since it’s supposed to be a top 100 chart, we can see that there are 96 extra rows that need to be taken care of. Let’s next see what we can do about it.</p>
+</div>
+<div id="filter-out-empty-rows-and-remove-first-row" class="section level2">
+<h2>5. <em>Filter</em> out empty rows and remove first row</h2>
+<p>Let’s now <em>filter</em> out the empty rows and remove the first row with <em>slice()</em>. It does contain the column titles, so you probably want to copy them to safety first. We’ll be needing them later.</p>
+<pre class="r"><code>pdf_with_text_filtered_tbl &lt;- pdf_with_text_tbl %&gt;%
+  filter(value != &quot;&quot;) %&gt;%
+  slice(-1) # Note to self and others: slice(n) to keep the nth row, slice(-n) to get rid of it 
+
+pdf_with_text_filtered_tbl
+## # A tibble: 100 x 1
+##    value                                                                        
+##    &lt;chr&gt;                                                                        
+##  1 Lil Nas X     MONTERO (Call Me By Your Name)               1             275~
+##  2 Blind Channel Dark Side       2             260403                           
+##  3 SANNI         Pettäjä         3             255770                           
+##  4 Haloo Helsinki!               Piilotan mun kyyneleet       4             238~
+##  5 Doja Cat      Kiss Me More (feat. SZA)      5              236820            
+##  6 Cledos, BEHM Life (Sun luo) 6               224839                           
+##  7 Masked Wolf Astronaut In The Ocean          7              202630            
+##  8 BEHM          Frida           8             200910                           
+##  9 Pyhimys, Eino Grön            Hyvät hautajaiset            9             196~
+## 10 costee        Ne voi liittyy (feat. BIZI)   10             194852            
+## # ... with 90 more rows</code></pre>
+<p>That’s more like it. A hundred rows for a hundred tracks. But now for the tricky part. We know that there should be four columns, but we only see one, <em>value</em>.</p>
+</div>
+<div id="separate-text-into-columns-with-regex" class="section level2">
+<h2>6. <em>Separate</em> text into columns with <em>regex</em></h2>
+<p>This is the part that I have to start with a <strong>HUGE DISCLAIMER</strong>: I’m not an expert on <em>regex</em> (regular expression). I’m pretty sure there would be a better way to do this next part. And if you are reading this and know what it is, please let me know!</p>
+<p>As we can see from the previous tibble, Blind Channel and their song Dark Side are separated by only one empty character. If all the “columns” were separated by at least two empty characters, this would be an easy task. And since that’s the closest thing to an acceptable solution, that’s what we’ll still do.</p>
+<pre class="r"><code>pdf_with_text_separated_tbl &lt;- pdf_with_text_filtered_tbl %&gt;% 
+  separate(col      = value,
+           # col    = the column which we are separating
+           
+           into     = c(&quot;artist&quot;, &quot;track&quot;, &quot;rank&quot;, &quot;streams&quot;),
+           # into   = the new column names
+           
+           sep      = &quot;[ ]{2,}&quot;,
+           # sep    = the regex pattern to separate the value column by, in this case by using two or more empty characters
+           
+           remove   = TRUE)
+## Warning: Expected 4 pieces. Missing pieces filled with `NA` in 38 rows [2, 6, 7,
+## 13, 17, 18, 22, 25, 29, 34, 36, 42, 43, 46, 47, 49, 50, 51, 53, 55, ...].
+           # remove = if TRUE, removes the original value column
+
+pdf_with_text_separated_tbl
+## # A tibble: 100 x 4
+##    artist                            track                         rank  streams
+##    &lt;chr&gt;                             &lt;chr&gt;                         &lt;chr&gt; &lt;chr&gt;  
+##  1 Lil Nas X                         MONTERO (Call Me By Your Nam~ 1     275091 
+##  2 Blind Channel Dark Side           2                             2604~ &lt;NA&gt;   
+##  3 SANNI                             Pettäjä                       3     255770 
+##  4 Haloo Helsinki!                   Piilotan mun kyyneleet        4     238089 
+##  5 Doja Cat                          Kiss Me More (feat. SZA)      5     236820 
+##  6 Cledos, BEHM Life (Sun luo) 6     224839                        &lt;NA&gt;  &lt;NA&gt;   
+##  7 Masked Wolf Astronaut In The Oce~ 7                             2026~ &lt;NA&gt;   
+##  8 BEHM                              Frida                         8     200910 
+##  9 Pyhimys, Eino Grön                Hyvät hautajaiset             9     196586 
+## 10 costee                            Ne voi liittyy (feat. BIZI)   10    194852 
+## # ... with 90 more rows</code></pre>
+<p>As you can see, we received a <em>warning</em> about missing pieces that were now filled with <em>NA</em>. Since I don’t see a proggammable way out of this situation, we’ll try to fix things using the <a href="https://dillonhammill.github.io/DataEditR/"><strong>DataEditR</strong></a> package. Only one quick <em>mutate()</em> to change the rank and stream columns’ types from text to numeric:</p>
+<pre class="r"><code>pdf_with_text_separated_tbl &lt;- pdf_with_text_separated_tbl %&gt;% 
+  mutate(
+    rank    = as.integer(rank),
+    streams = as.numeric(streams)
+  )
+
+pdf_with_text_separated_tbl
+## # A tibble: 100 x 4
+##    artist                            track                          rank streams
+##    &lt;chr&gt;                             &lt;chr&gt;                         &lt;int&gt;   &lt;dbl&gt;
+##  1 Lil Nas X                         MONTERO (Call Me By Your Na~      1  275091
+##  2 Blind Channel Dark Side           2                            260403      NA
+##  3 SANNI                             Pettäjä                           3  255770
+##  4 Haloo Helsinki!                   Piilotan mun kyyneleet            4  238089
+##  5 Doja Cat                          Kiss Me More (feat. SZA)          5  236820
+##  6 Cledos, BEHM Life (Sun luo) 6     224839                           NA      NA
+##  7 Masked Wolf Astronaut In The Oce~ 7                            202630      NA
+##  8 BEHM                              Frida                             8  200910
+##  9 Pyhimys, Eino Grön                Hyvät hautajaiset                 9  196586
+## 10 costee                            Ne voi liittyy (feat. BIZI)      10  194852
+## # ... with 90 more rows</code></pre>
+</div>
+<div id="finish-things-manually-with-dataeditr" class="section level2">
+<h2>7. Finish things manually with <strong>DataEditR</strong></h2>
+<p>This is the code I would use to start the DataEditR (inside of RStudio):</p>
+<pre class="r"><code>pdf_with_text_final_tbl &lt;- data_edit(pdf_with_text_separated_tbl)</code></pre>
+<p>You can then cut and paste the values as you would do in Excel.</p>
+<div class="figure">
+<img src="images/DataEditR_before.jpg" alt="" />
+<p class="caption">fig. 2 - DataEditR (before)</p>
+</div>
+<p>When you’re done editing, you should click the Refresh(?) button [1] and then Done [2].</p>
+<div class="figure">
+<img src="images/DataEditR_after.jpg" alt="" />
+<p class="caption">fig. 3 - DataEditR (after)</p>
+</div>
+<p>We now have the <em>pdf_with_text_final_tbl</em> to finally save as an Excel file:</p>
+<pre class="r"><code>pdf_with_text_final_tbl
+## # A tibble: 100 x 4
+##    artist             track                           rank streams
+##    &lt;chr&gt;              &lt;chr&gt;                          &lt;dbl&gt;   &lt;dbl&gt;
+##  1 Lil Nas X          MONTERO (Call Me By Your Name)     1  275091
+##  2 Blind Channel      Dark Side                          2  260403
+##  3 SANNI              Pettäjä                            3  255770
+##  4 Haloo Helsinki!    Piilotan mun kyyneleet             4  238089
+##  5 Doja Cat           Kiss Me More (feat. SZA)           5  236820
+##  6 Cledos, BEHM       Life (Sun luo)                     6  224839
+##  7 Masked Wolf        Astronaut In The Ocean             7  202630
+##  8 BEHM               Frida                              8  200910
+##  9 Pyhimys, Eino Grön Hyvät hautajaiset                  9  196586
+## 10 costee             Ne voi liittyy (feat. BIZI)       10  194852
+## # ... with 90 more rows</code></pre>
+<p>Almost there! The data is now clean as a whistle and all that is left to do, at the moment, is to save it as an excel file.</p>
+</div>
+<div id="create-excel-file-with-writexl" class="section level2">
+<h2>8. Create Excel file with <strong>writexl</strong></h2>
+<pre class="r"><code>write_xlsx(pdf_with_text_final_tbl, &quot;index_files/excel_from_pdf_with_text.xlsx&quot;)
+# You should change the file path to suit your needs</code></pre>
+<div class="figure">
+<img src="images/excel_from_pdf_with_text.jpg" alt="" />
+<p class="caption">fig. 4 - Extract from the final Excel file</p>
+</div>
+</div>
+</div>
+<div id="outro" class="section level1">
+<h1>Outro</h1>
+<p>Beautiful, isn’t it! It took us a while, but we got there eventually. Thanks for reading this far. If you’re curious to see, how the same data behaves if it’s in a table inside a PDF, tune in next week for part 2 of this PDF trilogy! Until then, happy text mining!</p>
+<p>ps. I’m more than happy to chat about all things data. Just send me a message on LinkedIn if you wish to do so!</p>
+</div>

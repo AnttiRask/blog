@@ -1,0 +1,3 @@
+"0","pdf_with_text_tbl <- as_tibble(unlist(pdf_with_text_list))"
+"0",""
+"0","pdf_with_text_tbl"

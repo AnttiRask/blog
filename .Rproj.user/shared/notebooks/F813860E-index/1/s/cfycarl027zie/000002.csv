@@ -1,0 +1,15 @@
+"0","path <- ""index_files/pdf_with_text_final.csv"""
+"0","pdf_with_text_final_tbl <- read_csv(file = path, locale = locale(encoding = ""latin1"")) %>% "
+"0","  select(-X1)"
+"2","Missing column names filled in: 'X1' [1]"
+"2","
+[36m--[39m [1m[1mColumn specification[1m[22m [36m---------------------------------------------------------[39m
+cols(
+  X1 = [32mcol_double()[39m,
+  artist = [31mcol_character()[39m,
+  track = [31mcol_character()[39m,
+  rank = [32mcol_double()[39m,
+  streams = [32mcol_double()[39m
+)
+
+"

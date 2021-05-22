@@ -1,0 +1,7 @@
+"0","pdf_with_text_separated_tbl <- pdf_with_text_separated_tbl %>% "
+"0","  mutate("
+"0","    rank    = as.numeric(rank),"
+"0","    streams = as.numeric(streams)"
+"0","  )"
+"0",""
+"0","pdf_with_text_separated_tbl"

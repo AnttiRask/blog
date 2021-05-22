@@ -1,0 +1,5 @@
+"0","pdf_with_text_filtered_tbl <- pdf_with_text_tbl %>%"
+"0","  filter(value != """") %>%"
+"0","  slice(-1) # Note to self and others: slice(n) to keep the nth row, slice(-n) to get rid of it "
+"0",""
+"0","pdf_with_text_filtered_tbl"
