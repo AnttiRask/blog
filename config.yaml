@@ -3,7 +3,7 @@ languageCode: en-us
 title: why join the navy when you can be a pi{R}ate
 theme: "hugo-theme-zen"
 googleAnalytics: ''
-disqusShortname: ''
+disqusShortname: "youcanbeapirate"
 ignoreFiles:
   - \.Rmd$
   - \.Rmarkdown$
@@ -14,15 +14,25 @@ permalinks:
   post: /:year/:month/:day/:slug/
 menu:
   main:
+    - name: Home
+      url: /
+      weight: -110
     - name: About
       url: /about/
+      weight: -100
     - name: LinkedIn
       url: https://www.linkedin.com/in/anttirask/
+      weight: -90
     - name: GitHub
       url: https://github.com/AnttiRask/
+      weight: -80
+    - name: Contact
+      url: /contact/
+      weight: -70
 params:
   MathJaxCDN: //cdnjs.cloudflare.com/ajax/libs
   MathJaxVersion: 2.7.5
+  contact: "antti.rask@teosto.fi"
   description: A website built through Hugo and blogdown.
   favicon: favicon.ico
   highlightjsCDN: //cdnjs.cloudflare.com/ajax/libs
@@ -31,11 +41,13 @@ params:
     - yaml
   highlightjsTheme: github
   highlightjsVersion: 9.12.0
-  logo:
-    alt: Logo
-    height: 50
-    url: logo.png
-    width: 50
+  logo: false
+    # alt: Logo
+    # height: 50
+    # url: logo.png
+    # width: 50
+  mobileMenu: true
+  poweredby: true
 markup:
   defaultMarkdownHandler: goldmark
   goldmark:
