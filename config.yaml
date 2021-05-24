@@ -3,7 +3,7 @@ languageCode: en-us
 title: why join the navy when you can be a pi{R}ate
 theme: "hugo-theme-zen"
 googleAnalytics: ''
-disqusShortname: 'youcanbeapirate'
+disqusShortname: "youcanbeapirate"
 ignoreFiles:
   - \.Rmd$
   - \.Rmarkdown$
