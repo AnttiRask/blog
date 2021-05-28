@@ -40,7 +40,6 @@ vignettes/*.pdf
 
 # Others
 /blogdown/
-/public/
 Thumbs.db
 .DS_Store
 /resources/
