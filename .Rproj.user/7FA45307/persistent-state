@@ -1,6 +1,6 @@
 build-last-errors="[]"
 build-last-errors-base-dir=""
-build-last-outputs="[]"
+build-last-outputs="[{\"type\":0,\"output\":\"==> rmarkdown::render_site(encoding = 'UTF-8')\\n\\n\"},{\"type\":1,\"output\":\"Start building sites … \\n\"},{\"type\":1,\"output\":\"\\n                   | EN  \\n-------------------+-----\\n  Pages            | 25  \\n  Paginator pages  |  0  \\n  Non-page files   | 10  \\n  Static files     | 12  \\n  Processed images |  0  \\n  Aliases          | 11  \\n  Sitemaps         |  1  \\n  Cleaned          |  0  \\n\\nTotal in 672 ms\\n\"},{\"type\":2,\"output\":\"\\r\\n==> The site has been generated to the directory 'public'.\\r\\n\\r\\n** Note that normally you cannot just open the .html files in this directory to view them in a browser. This directory need to be served before you can preview web pages correctly (e.g., you may deploy the folder to a web server). Alternatively, blogdown::serve_site() gives you a local preview of the site.\\r\\n\\r\\n\"}]"
 compile_pdf_state="{\"tab_visible\":false,\"running\":false,\"target_file\":\"\",\"output\":\"\",\"errors\":[]}"
 files.monitored-path=""
 find-in-files-state="{\"handle\":\"\",\"input\":\"\",\"path\":\"\",\"regex\":false,\"ignoreCase\":false,\"results\":{\"file\":[],\"line\":[],\"lineValue\":[],\"matchOn\":[],\"matchOff\":[],\"replaceMatchOn\":[],\"replaceMatchOff\":[]},\"running\":false,\"replace\":false,\"preview\":false,\"gitFlag\":false,\"replacePattern\":\"\"}"

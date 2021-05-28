@@ -8,10 +8,10 @@
 <meta name="created" content="2021-05-22T00:00:00+0000">
 <meta name="modified" content="2021-05-22T17:02:56+0300">
 <meta name="author" content="Antti Rask">
-
+<meta name="contact" content="antti.rask@teosto.fi">
 <meta property="og:site_name" content="why join the navy when you can be a pi{R}ate">
 <meta property="og:title" content="Mining Text from PDF Files, Part 1: PDF with Text">
-<meta property="og:url" content="/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/">
+<meta property="og:url" content="https://youcanbeapirate.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/">
 <meta property="og:type" content="article">
 
 <meta name="generator" content="Hugo 0.83.1" />
@@ -19,7 +19,7 @@
 <meta name="theme-color" content="#ffffff">
 
 
-<link rel="canonical" href="/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/">
+<link rel="canonical" href="https://youcanbeapirate.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
 <link rel="stylesheet" href="/css/styles.934ca64e1cd8b39bd18393dc4fa4788aab68ce041fa7830964c671eed3da2b40.css">
@@ -32,7 +32,7 @@
     "headline": "Mining Text from PDF Files, Part 1: PDF with Text",
     "datePublished": "2021-05-22T00:00:00Z",
     "dateModified": "2021-05-22T17:02:56+03:00",
-    "url" : "/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/",
+    "url" : "https://youcanbeapirate.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/",
     "description": "\rIntro\rI wanted to find out how to mine text from PDF files with R. I’m experimenting with different formats, which will each have their own blog post. This first one is …",
     "keywords": ["pdf","pdftools","regex","tidyverse","writexl","DataEditR"],
     "author": {
@@ -41,12 +41,12 @@
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": "/"
+      "@id": "https://youcanbeapirate.com/"
     },
     "publisher": {
       "@type": "Organization",
       "name": "why join the navy when you can be a pi{R}ate",
-      "url": "/"
+      "url": "https://youcanbeapirate.com/"
     }
   }
 </script>
@@ -55,13 +55,26 @@
 <script defer src="/js/lib/umbrella.min.6e17830ccdded0a13b96d6993865b58202bc2ee750e5892a51858ab048b2bebb.js"></script>
 <script defer src="/js/script.min.a71d161caff0970fa29a345da3bd9b444f629eccf1e4922585879b44f8f30160.js"></script>
 
+<script src="/js/tracking.min.1d69927b0d88b964ff09cd0e66cf1fee5e13201e059bfbed1893c575cc3cd670.js"></script>
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-FZGERRGYQM"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-FZGERRGYQM', { 'anonymize_ip': false });
+}
+</script>
+
 
 </head>
 
 <body class="single-page">
 <div class="page layout__page layout__sidebar-second">
 <header class="header layout__header">
-<a href="/" title="Home" rel="home" class="header__logo"><img src="/images/logo.png" alt="Home" class="header__logo-image"></a>
+
 <h1 class="header__site-name">
 <a href="/" title="Home" class="header__site-link" rel="home"><span>why join the navy when you can be a pi{R}ate</span></a>
 </h1>
@@ -72,9 +85,10 @@
 <nav class="main-menu layout__navigation">
 <h2 class="visually-hidden">Main menu</h2>
 <ul class="navbar">
+<li><a href="/">Home</a></li>
 <li><a href="/about/">About</a></li>
-<li><a href="https://github.com/AnttiRask/">GitHub</a></li>
 <li><a href="https://www.linkedin.com/in/anttirask/">LinkedIn</a></li>
+<li><a href="https://github.com/AnttiRask/">GitHub</a></li>
 </ul>
 </nav>
 
@@ -439,14 +453,14 @@ pdf_with_text_separated_tbl
 <p>As you can see, we received a <em>warning</em> about missing pieces that were now filled with <em>NA</em>. Since I don’t see a proggammable way out of this situation, we’ll try to fix things using the <a href="https://dillonhammill.github.io/DataEditR/"><strong>DataEditR</strong></a> package. Only one quick <em>mutate()</em> to change the rank and stream columns’ types from text to numeric:</p>
 <pre class="r"><code>pdf_with_text_separated_tbl &lt;- pdf_with_text_separated_tbl %&gt;% 
   mutate(
-    rank    = as.integer(rank),
+    rank    = as.numeric(rank),
     streams = as.numeric(streams)
   )
 
 pdf_with_text_separated_tbl
 ## # A tibble: 100 x 4
 ##    artist                            track                          rank streams
-##    &lt;chr&gt;                             &lt;chr&gt;                         &lt;int&gt;   &lt;dbl&gt;
+##    &lt;chr&gt;                             &lt;chr&gt;                         &lt;dbl&gt;   &lt;dbl&gt;
 ##  1 Lil Nas X                         MONTERO (Call Me By Your Na~      1  275091
 ##  2 Blind Channel Dark Side           2                            260403      NA
 ##  3 SANNI                             Pettäjä                           3  255770
@@ -520,7 +534,7 @@ Created: 22 May, 2021
 <footer class="footer layout__footer">
 <p><span>© why join the navy when you can be a pi{R}ate</span></p>
 
-
+<p>Powered by <a href="https://gohugo.io/">Hugo</a> and the <a href="https://github.com/frjo/hugo-theme-zen">Zen theme</a>.</p>
 </footer>
 </div>
 </body>

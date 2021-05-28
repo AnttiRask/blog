@@ -8,10 +8,10 @@
 <meta name="created" content="2021-05-22T00:00:00+0000">
 <meta name="modified" content="2021-05-22T00:00:00+0000">
 <meta name="author" content="Antti Rask">
-
+<meta name="contact" content="antti.rask@teosto.fi">
 <meta property="og:site_name" content="why join the navy when you can be a pi{R}ate">
 <meta property="og:title" content="About">
-<meta property="og:url" content="/about/">
+<meta property="og:url" content="https://youcanbeapirate.com/about/">
 <meta property="og:type" content="article">
 
 <meta name="generator" content="Hugo 0.83.1" />
@@ -19,7 +19,7 @@
 <meta name="theme-color" content="#ffffff">
 
 
-<link rel="canonical" href="/about/">
+<link rel="canonical" href="https://youcanbeapirate.com/about/">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
 <link rel="stylesheet" href="/css/styles.934ca64e1cd8b39bd18393dc4fa4788aab68ce041fa7830964c671eed3da2b40.css">
@@ -32,7 +32,7 @@
     "headline": "About",
     "datePublished": "2021-05-22T00:00:00Z",
     "dateModified": "2021-05-22T00:00:00Z",
-    "url" : "/about/",
+    "url" : "https://youcanbeapirate.com/about/",
     "description": "This is my blog created with the blogdown R package. The Hugo theme is Zen, created by Fredrik Jonsson. About Me I\u0026amp;rsquo;m Antti Rask, currently living in Helsinki, …",
     "author": {
       "@type": "Person",
@@ -40,12 +40,12 @@
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": "/"
+      "@id": "https://youcanbeapirate.com/"
     },
     "publisher": {
       "@type": "Organization",
       "name": "why join the navy when you can be a pi{R}ate",
-      "url": "/"
+      "url": "https://youcanbeapirate.com/"
     }
   }
 </script>
@@ -54,13 +54,26 @@
 <script defer src="/js/lib/umbrella.min.6e17830ccdded0a13b96d6993865b58202bc2ee750e5892a51858ab048b2bebb.js"></script>
 <script defer src="/js/script.min.a71d161caff0970fa29a345da3bd9b444f629eccf1e4922585879b44f8f30160.js"></script>
 
+<script src="/js/tracking.min.1d69927b0d88b964ff09cd0e66cf1fee5e13201e059bfbed1893c575cc3cd670.js"></script>
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-FZGERRGYQM"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-FZGERRGYQM', { 'anonymize_ip': false });
+}
+</script>
+
 
 </head>
 
 <body class="single-page">
 <div class="page layout__page layout__sidebar-second">
 <header class="header layout__header">
-<a href="/" title="Home" rel="home" class="header__logo"><img src="/images/logo.png" alt="Home" class="header__logo-image"></a>
+
 <h1 class="header__site-name">
 <a href="/" title="Home" class="header__site-link" rel="home"><span>why join the navy when you can be a pi{R}ate</span></a>
 </h1>
@@ -71,9 +84,10 @@
 <nav class="main-menu layout__navigation">
 <h2 class="visually-hidden">Main menu</h2>
 <ul class="navbar">
+<li><a href="/">Home</a></li>
 <li><a href="/about/">About</a></li>
-<li><a href="https://github.com/AnttiRask/">GitHub</a></li>
 <li><a href="https://www.linkedin.com/in/anttirask/">LinkedIn</a></li>
+<li><a href="https://github.com/AnttiRask/">GitHub</a></li>
 </ul>
 </nav>
 
@@ -100,7 +114,7 @@
 <footer class="footer layout__footer">
 <p><span>© why join the navy when you can be a pi{R}ate</span></p>
 
-
+<p>Powered by <a href="https://gohugo.io/">Hugo</a> and the <a href="https://github.com/frjo/hugo-theme-zen">Zen theme</a>.</p>
 </footer>
 </div>
 </body>

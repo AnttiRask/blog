@@ -2,32 +2,57 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>why join the navy when you can be a pi{R}ate</title>
-    <link>/</link>
+    <link>https://youcanbeapirate.com/</link>
     <description>Recent content on why join the navy when you can be a pi{R}ate</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Sat, 22 May 2021 00:00:00 +0000</lastBuildDate>
-    <atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://youcanbeapirate.com/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Contact</title>
+      <link>https://youcanbeapirate.com/contact/</link>
+      <pubDate>Mon, 24 May 2021 00:00:00 +0000</pubDate>
+      <guid>https://youcanbeapirate.com/contact/</guid>
+      <description>&lt;p class=&#34;error message js-hidden&#34;&gt;You must have Javascript enabled to use this function.&lt;/p&gt;
+&lt;p class=&#34;contact-submitted status message hidden&#34;&gt;Your message was sent.&lt;/p&gt;
+&lt;p class=&#34;contact-error error message hidden&#34;&gt;There was an error sending the message.&lt;/p&gt;
+
+&lt;form class=&#34;contact-form hidden&#34; action=&#34;#&#34; method=&#34;post&#34; accept-charset=&#34;UTF-8&#34;&gt;
+  &lt;label for=&#34;edit-name&#34;&gt;Name&lt;/label&gt;
+  &lt;input type=&#34;text&#34; id=&#34;edit-name&#34; name=&#34;name&#34; placeholder=&#34;Your name&#34; tabindex=&#34;1&#34; required autofocus&gt;&lt;span&gt;&lt;/span&gt;
+  &lt;label for=&#34;edit-mail&#34;&gt;E-mail address&lt;/label&gt;
+  &lt;input type=&#34;email&#34; id=&#34;edit-mail&#34; name=&#34;email&#34; placeholder=&#34;Your e-mail address&#34; tabindex=&#34;2&#34; required&gt;&lt;span&gt;&lt;/span&gt;
+  &lt;input type=&#34;text&#34; id=&#34;edit-url&#34; class=&#34;hidden&#34; name=&#34;url&#34; placeholder=&#34;Skip if you are a human&#34;&gt;
+  &lt;label for=&#34;edit-subject&#34;&gt;Subject&lt;/label&gt;
+  &lt;input type=&#34;text&#34; id=&#34;edit-subject&#34; name=&#34;subject&#34; placeholder=&#34;A short subject&#34; tabindex=&#34;3&#34; required&gt;&lt;span&gt;&lt;/span&gt;
+  &lt;label for=&#34;edit-message&#34;&gt;Message&lt;/label&gt;
+  &lt;textarea id=&#34;edit-message&#34; name=&#34;message&#34; rows=&#34;5&#34; placeholder=&#34;The messages goes here…&#34; tabindex=&#34;4&#34; required&gt;&lt;/textarea&gt;&lt;span&gt;&lt;/span&gt;
+  &lt;button type=&#34;submit&#34; name=&#34;submit&#34; class=&#34;form-submit&#34; disabled&gt;Send message&lt;/button&gt;
+&lt;/form&gt;
+
+</description>
+    </item>
     
     <item>
       <title>About</title>
-      <link>/about/</link>
+      <link>https://youcanbeapirate.com/about/</link>
       <pubDate>Sat, 22 May 2021 00:00:00 +0000</pubDate>
-      <guid>/about/</guid>
+      <guid>https://youcanbeapirate.com/about/</guid>
       <description>&lt;p&gt;This is my blog created with the &lt;a href=&#34;https://github.com/rstudio/blogdown&#34;&gt;&lt;strong&gt;blogdown&lt;/strong&gt;&lt;/a&gt; R package. The Hugo theme is &lt;a href=&#34;https://themes.gohugo.io/hugo-theme-zen/&#34;&gt;Zen&lt;/a&gt;, created by &lt;a href=&#34;https://xdeb.net/&#34;&gt;Fredrik Jonsson&lt;/a&gt;.&lt;/p&gt;
 &lt;h1 id=&#34;about-me&#34;&gt;About Me&lt;/h1&gt;
 &lt;p&gt;I&amp;rsquo;m Antti Rask, currently living in Helsinki, Finland. I&amp;rsquo;ve always been curious about how everything works, but I started learning about data and data science in earnest late in 2019.&lt;/p&gt;
 &lt;p&gt;I started this blog to document my data journey and if that also helps/inspires others on theirs, that&amp;rsquo;s a win-win situation.&lt;/p&gt;
 &lt;p&gt;My other passion is music. I write and perform it solo under the name of &lt;a href=&#34;https://open.spotify.com/album/4kAz9nMW7x79sty5dvDaUM?si=wgZEWeIgT2CX-cItiYrzjQ&#34;&gt;Eriparimies&lt;/a&gt; and I also sing and play the ukulele in a Finnish folk trio &lt;a href=&#34;https://open.spotify.com/album/22w4ujFyiuEs9M2RePkqTV?si=AQQF9Ku6QhysOGLAqXlAhA&#34;&gt;Antti &amp;amp; Isotalo&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;/./about_files/mv13.jpg&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://youcanbeapirate.com/./about_files/mv13.jpg&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
 </description>
     </item>
     
     <item>
       <title>Mining Text from PDF Files, Part 1: PDF with Text</title>
-      <link>/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</link>
+      <link>https://youcanbeapirate.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</link>
       <pubDate>Sat, 22 May 2021 00:00:00 +0000</pubDate>
-      <guid>/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</guid>
+      <guid>https://youcanbeapirate.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</guid>
       <description>
 
 
@@ -371,14 +396,14 @@ pdf_with_text_separated_tbl
 &lt;p&gt;As you can see, we received a &lt;em&gt;warning&lt;/em&gt; about missing pieces that were now filled with &lt;em&gt;NA&lt;/em&gt;. Since I don’t see a proggammable way out of this situation, we’ll try to fix things using the &lt;a href=&#34;https://dillonhammill.github.io/DataEditR/&#34;&gt;&lt;strong&gt;DataEditR&lt;/strong&gt;&lt;/a&gt; package. Only one quick &lt;em&gt;mutate()&lt;/em&gt; to change the rank and stream columns’ types from text to numeric:&lt;/p&gt;
 &lt;pre class=&#34;r&#34;&gt;&lt;code&gt;pdf_with_text_separated_tbl &amp;lt;- pdf_with_text_separated_tbl %&amp;gt;% 
   mutate(
-    rank    = as.integer(rank),
+    rank    = as.numeric(rank),
     streams = as.numeric(streams)
   )
 
 pdf_with_text_separated_tbl
 ## # A tibble: 100 x 4
 ##    artist                            track                          rank streams
-##    &amp;lt;chr&amp;gt;                             &amp;lt;chr&amp;gt;                         &amp;lt;int&amp;gt;   &amp;lt;dbl&amp;gt;
+##    &amp;lt;chr&amp;gt;                             &amp;lt;chr&amp;gt;                         &amp;lt;dbl&amp;gt;   &amp;lt;dbl&amp;gt;
 ##  1 Lil Nas X                         MONTERO (Call Me By Your Na~      1  275091
 ##  2 Blind Channel Dark Side           2                            260403      NA
 ##  3 SANNI                             Pettäjä                           3  255770

@@ -1,14 +1,452 @@
 ---
 title: 'Mining Text from PDF Files, Part 2: PDF with Tables'
-author: Antti Rask
+author: "Antti Rask"
 date: '2021-05-29'
-slug: mining-text-from-pdf-files-part-2-pdf-with-tables
 categories:
   - R
-tags: []
+tags:
+  - tabulizer
+  - pdf
+  - tidyverse
+  - writexl
+  - janitor
+slug: mining-text-from-pdf-files-part-2-pdf-with-tables
 lastmod: '2021-05-22T22:37:31+03:00'
 ---
 
 
 
+<div id="intro" class="section level1">
+<h1>Intro</h1>
+<p>I wanted to find out how to mine text from PDF files with R. Last week I tried to extract text from a <a href="https://youcanbeapirate.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/">PDF file with just text in it</a>. This week I will try extracting text from a PDF file with a table. Next week, I will try it from a picture inside a PDF file.</p>
+<p>I’m assuming you’re using RStudio as your IDE (Integrated Development Environment). I’m sure most of this can be done with using something else as well.</p>
+</div>
+<div id="tabulizer-in-action" class="section level1">
+<h1><strong>tabulizer</strong> in action</h1>
+<p>For this experiment, I’m using another cool package called <a href="https://cran.r-project.org/web/packages/tabulizer/vignettes/tabulizer.html">tabulizer</a>. If you’d like to know more about it, you should check out the package’s documentation.</p>
+<div id="lets-get-ready" class="section level2">
+<h2>1. Let’s get ready</h2>
+<p>Before we go any further, I’m going to load the packages we’ll be needing today:</p>
+<pre class="r"><code>library(tabulizer)
+# The main package for this operation
 
+library(tidyverse)
+# Prerequisite to everything
+
+library(writexl)
+# My go-to package for writing Excel files</code></pre>
+<p>I’ll also show you the raw material. If you’d like to try this at home, you can save the PDF file shown below. What we’re looking at here is <a href="https://spotifycharts.com/regional/fi/weekly/2021-05-14--2021-05-21">(Spotify’s weekly top 100 chart for Finland (2021-05-14 - 2021-05-21)</a>, but in text form.</p>
+<div class="figure">
+<embed src="images/pdf_with_table.pdf" style="width:100.0%" />
+<p class="caption">fig. 1 - The raw material</p>
+</div>
+</div>
+<div id="read-in-the-pdf-file" class="section level2">
+<h2>2. Read in the PDF file</h2>
+<p>Next, let’s read in the pdf file with the table inside with <em>extract_tables()</em> from the <strong>tabulizer</strong> package:</p>
+<pre class="r"><code>pdf_with_table &lt;- extract_tables(&quot;index_files/pdf_with_table.pdf&quot;, method = &quot;decide&quot;) # &quot;decide&quot; is the default method here, others are &quot;lattice&quot; and &quot;stream&quot; (see documentation for more info about them, but you can try switching them for a neater outcome, depending on the raw material)
+pdf_with_table
+## [[1]]
+##       [,1]                        
+##  [1,] &quot;artist&quot;                    
+##  [2,] &quot;Lil Nas X&quot;                 
+##  [3,] &quot;Blind Channel&quot;             
+##  [4,] &quot;SANNI&quot;                     
+##  [5,] &quot;Haloo Helsinki!&quot;           
+##  [6,] &quot;Doja Cat&quot;                  
+##  [7,] &quot;Cledos, BEHM&quot;              
+##  [8,] &quot;Masked Wolf&quot;               
+##  [9,] &quot;BEHM&quot;                      
+## [10,] &quot;Pyhimys, Eino Grön&quot;        
+## [11,] &quot;costee&quot;                    
+## [12,] &quot;Riton, Nightcrawlers&quot;      
+## [13,] &quot;Tion Wayne, Russ Millions&quot; 
+## [14,] &quot;Nathan Evans&quot;              
+## [15,] &quot;Dua Lipa&quot;                  
+## [16,] &quot;Etta&quot;                      
+## [17,] &quot;BEHM&quot;                      
+## [18,] &quot;Justin Bieber&quot;             
+## [19,] &quot;Keko Salata&quot;               
+## [20,] &quot;YB026, Nuteh Jonez&quot;        
+## [21,] &quot;ibe&quot;                       
+## [22,] &quot;Billie Eilish&quot;             
+## [23,] &quot;The Weeknd&quot;                
+## [24,] &quot;william&quot;                   
+## [25,] &quot;Polo G&quot;                    
+## [26,] &quot;Olivia Rodrigo&quot;            
+## [27,] &quot;ATB, Topic, A7S&quot;           
+## [28,] &quot;Majestic, Boney M.&quot;        
+## [29,] &quot;P!nk, Willow Sage Hart&quot;    
+## [30,] &quot;ABREU&quot;                     
+## [31,] &quot;william&quot;                   
+## [32,] &quot;Brädi&quot;                     
+## [33,] &quot;Aurora&quot;                    
+## [34,] &quot;Teflon Brothers, Pandora&quot;  
+## [35,] &quot;Portion Boys&quot;              
+## [36,] &quot;Lauri Tähkä&quot;               
+## [37,] &quot;Tiësto&quot;                    
+## [38,] &quot;Pihlaja&quot;                   
+## [39,] &quot;ibe, Blacflaco, Elastinen&quot; 
+## [40,] &quot;BEHM&quot;                      
+## [41,] &quot;BEHM&quot;                      
+## [42,] &quot;Ilta&quot;                      
+## [43,] &quot;The Weeknd&quot;                
+## [44,] &quot;Alan Walker, Conor Maynard&quot;
+## [45,] &quot;Kaija Koo&quot;                 
+## [46,] &quot;BEHM&quot;                      
+## [47,] &quot;Coldplay&quot;                  
+## [48,] &quot;Tom Odell&quot;                 
+## [49,] &quot;Ava Max&quot;                   
+## [50,] &quot;Bella Poarch&quot;              
+## [51,] &quot;Pyrythekid&quot;                
+##       [,2]                                                                                         
+##  [1,] &quot;track&quot;                                                                                      
+##  [2,] &quot;MONTERO (Call Me By Your Name)&quot;                                                             
+##  [3,] &quot;Dark Side&quot;                                                                                  
+##  [4,] &quot;Pettäjä&quot;                                                                                    
+##  [5,] &quot;Piilotan mun kyyneleet&quot;                                                                     
+##  [6,] &quot;Kiss Me More (feat. SZA)&quot;                                                                   
+##  [7,] &quot;Life (Sun luo)&quot;                                                                             
+##  [8,] &quot;Astronaut In The Ocean&quot;                                                                     
+##  [9,] &quot;Frida&quot;                                                                                      
+## [10,] &quot;Hyvät hautajaiset&quot;                                                                          
+## [11,] &quot;Ne voi liittyy (feat. BIZI)&quot;                                                                
+## [12,] &quot;Friday (feat. Mufasa &amp; Hypeman) - Dopamine Re-Edit&quot;                                         
+## [13,] &quot;Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x3), Bugzy Malone, Buni, Fivio Foreign &amp; Darkoo]&quot;
+## [14,] &quot;Wellerman - Sea Shanty / 220 KID x Billen Ted Remix&quot;                                        
+## [15,] &quot;Levitating (feat. DaBaby)&quot;                                                                  
+## [16,] &quot;Prinsessa&quot;                                                                                  
+## [17,] &quot;Hei rakas&quot;                                                                                  
+## [18,] &quot;Peaches (feat. Daniel Caesar &amp; Giveon)&quot;                                                     
+## [19,] &quot;Kaipaan sua (feat. Boyat &amp; Samuli Heimo)&quot;                                                   
+## [20,] &quot;Steppasin Partyy&quot;                                                                           
+## [21,] &quot;Tunteet&quot;                                                                                    
+## [22,] &quot;Your Power&quot;                                                                                 
+## [23,] &quot;Save Your Tears (with Ariana Grande) (Remix)&quot;                                               
+## [24,] &quot;Penelope (feat. Clever)&quot;                                                                    
+## [25,] &quot;RAPSTAR&quot;                                                                                    
+## [26,] &quot;good 4 u&quot;                                                                                   
+## [27,] &quot;Your Love (9PM)&quot;                                                                            
+## [28,] &quot;Rasputin&quot;                                                                                   
+## [29,] &quot;Cover Me In Sunshine&quot;                                                                       
+## [30,] &quot;20 Ave Mariaa&quot;                                                                              
+## [31,] &quot;Flyys&quot;                                                                                      
+## [32,] &quot;Keväät&quot;                                                                                     
+## [33,] &quot;Vettä kaivoon (feat. Keko Salata)&quot;                                                          
+## [34,] &quot;I Love You&quot;                                                                                 
+## [35,] &quot;Kyläbaari&quot;                                                                                  
+## [36,] &quot;Aavikko&quot;                                                                                    
+## [37,] &quot;The Business&quot;                                                                               
+## [38,] &quot;Paha Barbi&quot;                                                                                 
+## [39,] &quot;WEST SIDE BABY&quot;                                                                             
+## [40,] &quot;Päästä varpaisiin&quot;                                                                          
+## [41,] &quot;Lupaan&quot;                                                                                     
+## [42,] &quot;Kelle mä soitan&quot;                                                                            
+## [43,] &quot;Blinding Lights&quot;                                                                            
+## [44,] &quot;Believers&quot;                                                                                  
+## [45,] &quot;Sateenkaari pimeessä&quot;                                                                       
+## [46,] &quot;Tivolit&quot;                                                                                    
+## [47,] &quot;Higher Power&quot;                                                                               
+## [48,] &quot;Another Love&quot;                                                                               
+## [49,] &quot;My Head &amp; My Heart&quot;                                                                         
+## [50,] &quot;Build a Bitch&quot;                                                                              
+## [51,] &quot;Epäkohtelias (feat. Axel Kala &amp; Gettomasa)&quot;                                                 
+##       [,3]   [,4]     
+##  [1,] &quot;rank&quot; &quot;streams&quot;
+##  [2,] &quot;1&quot;    &quot;275091&quot; 
+##  [3,] &quot;2&quot;    &quot;260403&quot; 
+##  [4,] &quot;3&quot;    &quot;255770&quot; 
+##  [5,] &quot;4&quot;    &quot;238089&quot; 
+##  [6,] &quot;5&quot;    &quot;236820&quot; 
+##  [7,] &quot;6&quot;    &quot;224839&quot; 
+##  [8,] &quot;7&quot;    &quot;202630&quot; 
+##  [9,] &quot;8&quot;    &quot;200910&quot; 
+## [10,] &quot;9&quot;    &quot;196586&quot; 
+## [11,] &quot;10&quot;   &quot;194852&quot; 
+## [12,] &quot;11&quot;   &quot;186470&quot; 
+## [13,] &quot;12&quot;   &quot;182369&quot; 
+## [14,] &quot;13&quot;   &quot;182353&quot; 
+## [15,] &quot;14&quot;   &quot;180922&quot; 
+## [16,] &quot;15&quot;   &quot;175544&quot; 
+## [17,] &quot;16&quot;   &quot;168578&quot; 
+## [18,] &quot;17&quot;   &quot;167833&quot; 
+## [19,] &quot;18&quot;   &quot;158543&quot; 
+## [20,] &quot;19&quot;   &quot;154737&quot; 
+## [21,] &quot;20&quot;   &quot;147176&quot; 
+## [22,] &quot;21&quot;   &quot;143926&quot; 
+## [23,] &quot;22&quot;   &quot;142865&quot; 
+## [24,] &quot;23&quot;   &quot;142381&quot; 
+## [25,] &quot;24&quot;   &quot;135300&quot; 
+## [26,] &quot;25&quot;   &quot;132459&quot; 
+## [27,] &quot;26&quot;   &quot;132176&quot; 
+## [28,] &quot;27&quot;   &quot;129677&quot; 
+## [29,] &quot;28&quot;   &quot;126374&quot; 
+## [30,] &quot;29&quot;   &quot;125031&quot; 
+## [31,] &quot;30&quot;   &quot;121863&quot; 
+## [32,] &quot;31&quot;   &quot;121534&quot; 
+## [33,] &quot;32&quot;   &quot;119095&quot; 
+## [34,] &quot;33&quot;   &quot;117764&quot; 
+## [35,] &quot;34&quot;   &quot;116293&quot; 
+## [36,] &quot;35&quot;   &quot;114680&quot; 
+## [37,] &quot;36&quot;   &quot;111908&quot; 
+## [38,] &quot;37&quot;   &quot;110442&quot; 
+## [39,] &quot;38&quot;   &quot;110222&quot; 
+## [40,] &quot;39&quot;   &quot;110066&quot; 
+## [41,] &quot;40&quot;   &quot;109843&quot; 
+## [42,] &quot;41&quot;   &quot;108466&quot; 
+## [43,] &quot;42&quot;   &quot;106940&quot; 
+## [44,] &quot;43&quot;   &quot;106449&quot; 
+## [45,] &quot;44&quot;   &quot;104221&quot; 
+## [46,] &quot;45&quot;   &quot;103219&quot; 
+## [47,] &quot;46&quot;   &quot;102244&quot; 
+## [48,] &quot;47&quot;   &quot;99598&quot;  
+## [49,] &quot;48&quot;   &quot;96021&quot;  
+## [50,] &quot;49&quot;   &quot;95933&quot;  
+## [51,] &quot;50&quot;   &quot;93762&quot;  
+## 
+## [[2]]
+##       [,1]                                       
+##  [1,] &quot;The Weeknd&quot;                               
+##  [2,] &quot;Nightshift, Pyhimys, ibe, Dreas&quot;          
+##  [3,] &quot;JVG&quot;                                      
+##  [4,] &quot;AURORA&quot;                                   
+##  [5,] &quot;Olivia Rodrigo&quot;                           
+##  [6,] &quot;Ellinoora&quot;                                
+##  [7,] &quot;Kube&quot;                                     
+##  [8,] &quot;Janna&quot;                                    
+##  [9,] &quot;Duncan Laurence&quot;                          
+## [10,] &quot;Gasellit, Karri Koira&quot;                    
+## [11,] &quot;Arttu Wiskari&quot;                            
+## [12,] &quot;J. Cole&quot;                                  
+## [13,] &quot;Olivia Rodrigo&quot;                           
+## [14,] &quot;Bruno Mars, Anderson .Paak, Silk Sonic&quot;   
+## [15,] &quot;Happoradio&quot;                               
+## [16,] &quot;Ofenbach&quot;                                 
+## [17,] &quot;ibe&quot;                                      
+## [18,] &quot;J. Cole&quot;                                  
+## [19,] &quot;BEHM&quot;                                     
+## [20,] &quot;Haloo Helsinki!&quot;                          
+## [21,] &quot;Erika Vikman&quot;                             
+## [22,] &quot;ScurtDae&quot;                                 
+## [23,] &quot;J. Cole&quot;                                  
+## [24,] &quot;The Kid LAROI&quot;                            
+## [25,] &quot;Imagine Dragons&quot;                          
+## [26,] &quot;Erin&quot;                                     
+## [27,] &quot;Elias Kaskinen&quot;                           
+## [28,] &quot;VIIVI&quot;                                    
+## [29,] &quot;J. Cole&quot;                                  
+## [30,] &quot;Kuningasidea&quot;                             
+## [31,] &quot;Chebaleba&quot;                                
+## [32,] &quot;Cardi B&quot;                                  
+## [33,] &quot;Studio Killers&quot;                           
+## [34,] &quot;Elastinen&quot;                                
+## [35,] &quot;Gettomasa&quot;                                
+## [36,] &quot;Mikael Gabriel&quot;                           
+## [37,] &quot;OneRepublic&quot;                              
+## [38,] &quot;Kymppilinja&quot;                              
+## [39,] &quot;Samu Haber&quot;                               
+## [40,] &quot;Surf Curse&quot;                               
+## [41,] &quot;Martin Garrix&quot;                            
+## [42,] &quot;Glass Animals&quot;                            
+## [43,] &quot;24kGoldn&quot;                                 
+## [44,] &quot;Axel Kala&quot;                                
+## [45,] &quot;Poju&quot;                                     
+## [46,] &quot;DMNDS, Strange Fruits Music, Fallen Roses&quot;
+## [47,] &quot;Aleksanteri Hakaniemi&quot;                    
+## [48,] &quot;DJ Khaled&quot;                                
+## [49,] &quot;Keko Salata&quot;                              
+## [50,] &quot;Klamydia&quot;                                 
+##       [,2]                                                                      
+##  [1,] &quot;Save Your Tears&quot;                                                         
+##  [2,] &quot;Kivullisii&quot;                                                              
+##  [3,] &quot;Ikuinen vappu&quot;                                                           
+##  [4,] &quot;Runaway&quot;                                                                 
+##  [5,] &quot;drivers license&quot;                                                         
+##  [6,] &quot;Dinosauruksii&quot;                                                           
+##  [7,] &quot;100&quot;                                                                     
+##  [8,] &quot;Maailma meidän jälkeen&quot;                                                  
+##  [9,] &quot;Arcade&quot;                                                                  
+## [10,] &quot;Me ei mennä rikki&quot;                                                       
+## [11,] &quot;Tässäkö tää oli? (feat. Leavings-Orkesteri)&quot;                             
+## [12,] &quot;amari&quot;                                                                   
+## [13,] &quot;deja vu&quot;                                                                 
+## [14,] &quot;Leave The Door Open&quot;                                                     
+## [15,] &quot;Jos et olis siinä&quot;                                                       
+## [16,] &quot;Wasted Love (feat. Lagique)&quot;                                             
+## [17,] &quot;molemmat&quot;                                                                
+## [18,] &quot;p r i d e . i s . t h e . d e v i l (with Lil Baby)&quot;                     
+## [19,] &quot;Minä vai maailma (feat. Keko Salata)&quot;                                    
+## [20,] &quot;Lady Domina&quot;                                                             
+## [21,] &quot;Syntisten pöytä&quot;                                                         
+## [22,] &quot;Back to Life (Birthdae)&quot;                                                 
+## [23,] &quot;m y . l i f e (with 21 Savage &amp; Morray)&quot;                                 
+## [24,] &quot;WITHOUT YOU&quot;                                                             
+## [25,] &quot;Follow You&quot;                                                              
+## [26,] &quot;Niinku koko ajan&quot;                                                        
+## [27,] &quot;Kerran elämässä&quot;                                                         
+## [28,] &quot;Lääke&quot;                                                                   
+## [29,] &quot;i n t e r l u d e&quot;                                                       
+## [30,] &quot;Pohjolan tuulet&quot;                                                         
+## [31,] &quot;Kesäfiilistelyy (feat. RicoWamos)&quot;                                       
+## [32,] &quot;Up&quot;                                                                      
+## [33,] &quot;Jenny (I Wanna Ruin Our Friendship)&quot;                                     
+## [34,] &quot;Epäröimättä hetkeekään (feat. Jenni Vartiainen)&quot;                         
+## [35,] &quot;Silmät&quot;                                                                  
+## [36,] &quot;Intiaanikesä&quot;                                                            
+## [37,] &quot;Run&quot;                                                                     
+## [38,] &quot;Minä (feat. Mariska)&quot;                                                    
+## [39,] &quot;Täältä tullaan&quot;                                                          
+## [40,] &quot;Freaks&quot;                                                                  
+## [41,] &quot;We Are The People (feat. Bono &amp; The Edge) - Official UEFA EURO 2020 Song&quot;
+## [42,] &quot;Heat Waves&quot;                                                              
+## [43,] &quot;Mood (feat. iann dior)&quot;                                                  
+## [44,] &quot;Moni meist&quot;                                                              
+## [45,] &quot;Esson baariin&quot;                                                           
+## [46,] &quot;Calabria (feat. Lujavo &amp; Nito-Onna)&quot;                                     
+## [47,] &quot;Bonsaipuu&quot;                                                               
+## [48,] &quot;I DID IT (feat. Post Malone, Megan Thee Stallion, Lil Baby &amp; DaBaby)&quot;    
+## [49,] &quot;Vanha (feat. BEHM)&quot;                                                      
+## [50,] &quot;Pienen pojan elämää&quot;                                                     
+##       [,3]  [,4]   
+##  [1,] &quot;51&quot;  &quot;93498&quot;
+##  [2,] &quot;52&quot;  &quot;90460&quot;
+##  [3,] &quot;53&quot;  &quot;89440&quot;
+##  [4,] &quot;54&quot;  &quot;83727&quot;
+##  [5,] &quot;55&quot;  &quot;83344&quot;
+##  [6,] &quot;56&quot;  &quot;82398&quot;
+##  [7,] &quot;57&quot;  &quot;82145&quot;
+##  [8,] &quot;58&quot;  &quot;81706&quot;
+##  [9,] &quot;59&quot;  &quot;81427&quot;
+## [10,] &quot;60&quot;  &quot;78202&quot;
+## [11,] &quot;61&quot;  &quot;77709&quot;
+## [12,] &quot;62&quot;  &quot;76892&quot;
+## [13,] &quot;63&quot;  &quot;75942&quot;
+## [14,] &quot;64&quot;  &quot;75299&quot;
+## [15,] &quot;65&quot;  &quot;74306&quot;
+## [16,] &quot;66&quot;  &quot;74285&quot;
+## [17,] &quot;67&quot;  &quot;73492&quot;
+## [18,] &quot;68&quot;  &quot;72613&quot;
+## [19,] &quot;69&quot;  &quot;71289&quot;
+## [20,] &quot;70&quot;  &quot;70890&quot;
+## [21,] &quot;71&quot;  &quot;70638&quot;
+## [22,] &quot;72&quot;  &quot;70592&quot;
+## [23,] &quot;73&quot;  &quot;70345&quot;
+## [24,] &quot;74&quot;  &quot;68620&quot;
+## [25,] &quot;75&quot;  &quot;67793&quot;
+## [26,] &quot;76&quot;  &quot;67644&quot;
+## [27,] &quot;77&quot;  &quot;67296&quot;
+## [28,] &quot;78&quot;  &quot;67076&quot;
+## [29,] &quot;79&quot;  &quot;66523&quot;
+## [30,] &quot;80&quot;  &quot;66243&quot;
+## [31,] &quot;81&quot;  &quot;65072&quot;
+## [32,] &quot;82&quot;  &quot;64987&quot;
+## [33,] &quot;83&quot;  &quot;64202&quot;
+## [34,] &quot;84&quot;  &quot;63930&quot;
+## [35,] &quot;85&quot;  &quot;63448&quot;
+## [36,] &quot;86&quot;  &quot;62128&quot;
+## [37,] &quot;87&quot;  &quot;62096&quot;
+## [38,] &quot;88&quot;  &quot;61114&quot;
+## [39,] &quot;89&quot;  &quot;60235&quot;
+## [40,] &quot;90&quot;  &quot;59496&quot;
+## [41,] &quot;91&quot;  &quot;58058&quot;
+## [42,] &quot;92&quot;  &quot;57694&quot;
+## [43,] &quot;93&quot;  &quot;57086&quot;
+## [44,] &quot;94&quot;  &quot;55938&quot;
+## [45,] &quot;95&quot;  &quot;55892&quot;
+## [46,] &quot;96&quot;  &quot;55805&quot;
+## [47,] &quot;97&quot;  &quot;55657&quot;
+## [48,] &quot;98&quot;  &quot;55644&quot;
+## [49,] &quot;99&quot;  &quot;55451&quot;
+## [50,] &quot;100&quot; &quot;54190&quot;</code></pre>
+<p>Okay, looks like we ended up with a <em>list</em> again. Let’s next turn it into a <em>tibble</em> by first using <em>rbind</em> to combine the list into a matrix.</p>
+</div>
+<div id="turn-the-list-into-a-matrix-and-then-to-a-tibble" class="section level2">
+<h2>3. Turn the <em>list</em> into a <em>matrix</em> and then to a <em>tibble</em></h2>
+<p>First, using the <em>do.call()</em> function, let’s tell R to use <em>rbind()</em> to combine the rows of the two elements inside that list <em>pdf_with_table</em>. Then, using the pipe operator (%&gt;%), one of my favorite things about Tidyverse, let’s feed the <em>as_tibble()</em> function to create a tibble.</p>
+<pre class="r"><code>pdf_with_table_tbl &lt;- do.call(rbind, pdf_with_table) %&gt;% 
+  
+  as_tibble()
+
+pdf_with_table_tbl
+## # A tibble: 101 x 4
+##    V1                 V2                             V3    V4     
+##    &lt;chr&gt;              &lt;chr&gt;                          &lt;chr&gt; &lt;chr&gt;  
+##  1 artist             track                          rank  streams
+##  2 Lil Nas X          MONTERO (Call Me By Your Name) 1     275091 
+##  3 Blind Channel      Dark Side                      2     260403 
+##  4 SANNI              Pettäjä                        3     255770 
+##  5 Haloo Helsinki!    Piilotan mun kyyneleet         4     238089 
+##  6 Doja Cat           Kiss Me More (feat. SZA)       5     236820 
+##  7 Cledos, BEHM       Life (Sun luo)                 6     224839 
+##  8 Masked Wolf        Astronaut In The Ocean         7     202630 
+##  9 BEHM               Frida                          8     200910 
+## 10 Pyhimys, Eino Grön Hyvät hautajaiset              9     196586 
+## # ... with 91 more rows</code></pre>
+<p>Now, that looks better already, but we still need to turn the first row into column names. Let’s use a new package for that.</p>
+</div>
+<div id="turn-first-row-into-columns-with-janitor" class="section level2">
+<h2>4. Turn first row into columns with <strong>janitor</strong></h2>
+<p><a href="https://cran.r-project.org/web/packages/janitor/vignettes/janitor.html">Janitor</a> is a nice little package to help clean data with. We’ll be using its <em>row_to_names()</em> function. And since we only need it this once, we might as well call it writing ‘package::function()’ instead of library(package) and function() separately.</p>
+<pre class="r"><code>pdf_with_table_named_tbl &lt;- pdf_with_table_tbl %&gt;%
+  
+  janitor::row_to_names(row_number = 1)
+
+pdf_with_table_named_tbl
+## # A tibble: 100 x 4
+##    artist             track                          rank  streams
+##    &lt;chr&gt;              &lt;chr&gt;                          &lt;chr&gt; &lt;chr&gt;  
+##  1 Lil Nas X          MONTERO (Call Me By Your Name) 1     275091 
+##  2 Blind Channel      Dark Side                      2     260403 
+##  3 SANNI              Pettäjä                        3     255770 
+##  4 Haloo Helsinki!    Piilotan mun kyyneleet         4     238089 
+##  5 Doja Cat           Kiss Me More (feat. SZA)       5     236820 
+##  6 Cledos, BEHM       Life (Sun luo)                 6     224839 
+##  7 Masked Wolf        Astronaut In The Ocean         7     202630 
+##  8 BEHM               Frida                          8     200910 
+##  9 Pyhimys, Eino Grön Hyvät hautajaiset              9     196586 
+## 10 costee             Ne voi liittyy (feat. BIZI)    10    194852 
+## # ... with 90 more rows</code></pre>
+<p>Nice! We’re almost there. Now we’ll just change the column types for rank and streams.</p>
+</div>
+<div id="mutate-rank-and-streams-to-numeric" class="section level2">
+<h2>5. <em>Mutate</em> rank and streams to <em>numeric</em></h2>
+<p>Let’s now <em>mutate</em> the two numeric columns from character type to <em>numeric</em>.</p>
+<pre class="r"><code>pdf_with_table_final_tbl &lt;- pdf_with_table_named_tbl %&gt;%
+  mutate(
+    rank    = as.numeric(rank),
+    streams = as.numeric(streams)
+  )
+
+pdf_with_table_final_tbl
+## # A tibble: 100 x 4
+##    artist             track                           rank streams
+##    &lt;chr&gt;              &lt;chr&gt;                          &lt;dbl&gt;   &lt;dbl&gt;
+##  1 Lil Nas X          MONTERO (Call Me By Your Name)     1  275091
+##  2 Blind Channel      Dark Side                          2  260403
+##  3 SANNI              Pettäjä                            3  255770
+##  4 Haloo Helsinki!    Piilotan mun kyyneleet             4  238089
+##  5 Doja Cat           Kiss Me More (feat. SZA)           5  236820
+##  6 Cledos, BEHM       Life (Sun luo)                     6  224839
+##  7 Masked Wolf        Astronaut In The Ocean             7  202630
+##  8 BEHM               Frida                              8  200910
+##  9 Pyhimys, Eino Grön Hyvät hautajaiset                  9  196586
+## 10 costee             Ne voi liittyy (feat. BIZI)       10  194852
+## # ... with 90 more rows</code></pre>
+<p>That’s it! Now we just need to create the excel file again.</p>
+</div>
+<div id="create-excel-file-with-writexl" class="section level2">
+<h2>6. Create Excel file with <strong>writexl</strong></h2>
+<pre class="r"><code>write_xlsx(pdf_with_table_final_tbl, &quot;index_files/excel_from_table.xlsx&quot;)
+# You should change the file path to suit your needs</code></pre>
+<div class="figure">
+<img src="images/excel_from_table.jpg" alt="" />
+<p class="caption">fig. 2 - Extract from the final Excel file</p>
+</div>
+</div>
+</div>
+<div id="outro" class="section level1">
+<h1>Outro</h1>
+<p>We took a different path, because of the slightly different starting point. But we ended up with the same end results as last week. So, if you have tabular data inside a PDF, <strong>tabulizer</strong> is definitely worth checking out!</p>
+<p>Thanks for reading this far. If you’re curious to see, how the same data behaves if it’s in picture inside a PDF (like a matryoshka doll), tune in next week for part 3 of this PDF trilogy! Until then, happy text mining!</p>
+<p>ps. I’m more than happy to chat about all things data. Just send me a message on LinkedIn if you wish to do so!</p>
+</div>

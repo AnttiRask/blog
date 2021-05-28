@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>pdf on why join the navy when you can be a pi{R}ate</title>
-    <link>/tags/pdf/</link>
+    <link>https://youcanbeapirate.com/tags/pdf/</link>
     <description>Recent content in pdf on why join the navy when you can be a pi{R}ate</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Sat, 22 May 2021 00:00:00 +0000</lastBuildDate>
-    <atom:link href="/tags/pdf/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://youcanbeapirate.com/tags/pdf/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
       <title>Mining Text from PDF Files, Part 1: PDF with Text</title>
-      <link>/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</link>
+      <link>https://youcanbeapirate.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</link>
       <pubDate>Sat, 22 May 2021 00:00:00 +0000</pubDate>
-      <guid>/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</guid>
+      <guid>https://youcanbeapirate.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</guid>
       <description>
 
 
@@ -357,14 +357,14 @@ pdf_with_text_separated_tbl
 &lt;p&gt;As you can see, we received a &lt;em&gt;warning&lt;/em&gt; about missing pieces that were now filled with &lt;em&gt;NA&lt;/em&gt;. Since I don’t see a proggammable way out of this situation, we’ll try to fix things using the &lt;a href=&#34;https://dillonhammill.github.io/DataEditR/&#34;&gt;&lt;strong&gt;DataEditR&lt;/strong&gt;&lt;/a&gt; package. Only one quick &lt;em&gt;mutate()&lt;/em&gt; to change the rank and stream columns’ types from text to numeric:&lt;/p&gt;
 &lt;pre class=&#34;r&#34;&gt;&lt;code&gt;pdf_with_text_separated_tbl &amp;lt;- pdf_with_text_separated_tbl %&amp;gt;% 
   mutate(
-    rank    = as.integer(rank),
+    rank    = as.numeric(rank),
     streams = as.numeric(streams)
   )
 
 pdf_with_text_separated_tbl
 ## # A tibble: 100 x 4
 ##    artist                            track                          rank streams
-##    &amp;lt;chr&amp;gt;                             &amp;lt;chr&amp;gt;                         &amp;lt;int&amp;gt;   &amp;lt;dbl&amp;gt;
+##    &amp;lt;chr&amp;gt;                             &amp;lt;chr&amp;gt;                         &amp;lt;dbl&amp;gt;   &amp;lt;dbl&amp;gt;
 ##  1 Lil Nas X                         MONTERO (Call Me By Your Na~      1  275091
 ##  2 Blind Channel Dark Side           2                            260403      NA
 ##  3 SANNI                             Pettäjä                           3  255770
