@@ -43,3 +43,4 @@ vignettes/*.pdf
 Thumbs.db
 .DS_Store
 /resources/
+/public/
