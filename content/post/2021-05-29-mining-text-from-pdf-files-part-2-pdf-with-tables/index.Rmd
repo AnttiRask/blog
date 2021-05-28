@@ -11,7 +11,7 @@ tags:
   - writexl
   - janitor
 slug: mining-text-from-pdf-files-part-2-pdf-with-tables
-lastmod: '2021-05-22T22:37:31+03:00'
+lastmod: '2021-05-29T22:37:31+03:00'
 ---
 
 ```{r setup, include=FALSE}
