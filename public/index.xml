@@ -2,18 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>why join the navy when you can be a pi{R}ate</title>
-    <link>https://youcanbeapirate.com/</link>
+    <link>https://youcanbeapirate.netlify.com/</link>
     <description>Recent content on why join the navy when you can be a pi{R}ate</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Sat, 22 May 2021 00:00:00 +0000</lastBuildDate>
-    <atom:link href="https://youcanbeapirate.com/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://youcanbeapirate.netlify.com/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
       <title>Contact</title>
-      <link>https://youcanbeapirate.com/contact/</link>
+      <link>https://youcanbeapirate.netlify.com/contact/</link>
       <pubDate>Mon, 24 May 2021 00:00:00 +0000</pubDate>
-      <guid>https://youcanbeapirate.com/contact/</guid>
+      <guid>https://youcanbeapirate.netlify.com/contact/</guid>
       <description>&lt;p class=&#34;error message js-hidden&#34;&gt;You must have Javascript enabled to use this function.&lt;/p&gt;
 &lt;p class=&#34;contact-submitted status message hidden&#34;&gt;Your message was sent.&lt;/p&gt;
 &lt;p class=&#34;contact-error error message hidden&#34;&gt;There was an error sending the message.&lt;/p&gt;
@@ -36,23 +36,23 @@
     
     <item>
       <title>About</title>
-      <link>https://youcanbeapirate.com/about/</link>
+      <link>https://youcanbeapirate.netlify.com/about/</link>
       <pubDate>Sat, 22 May 2021 00:00:00 +0000</pubDate>
-      <guid>https://youcanbeapirate.com/about/</guid>
+      <guid>https://youcanbeapirate.netlify.com/about/</guid>
       <description>&lt;p&gt;This is my blog created with the &lt;a href=&#34;https://github.com/rstudio/blogdown&#34;&gt;&lt;strong&gt;blogdown&lt;/strong&gt;&lt;/a&gt; R package. The Hugo theme is &lt;a href=&#34;https://themes.gohugo.io/hugo-theme-zen/&#34;&gt;Zen&lt;/a&gt;, created by &lt;a href=&#34;https://xdeb.net/&#34;&gt;Fredrik Jonsson&lt;/a&gt;.&lt;/p&gt;
 &lt;h1 id=&#34;about-me&#34;&gt;About Me&lt;/h1&gt;
 &lt;p&gt;I&amp;rsquo;m Antti Rask, currently living in Helsinki, Finland. I&amp;rsquo;ve always been curious about how everything works, but I started learning about data and data science in earnest late in 2019.&lt;/p&gt;
 &lt;p&gt;I started this blog to document my data journey and if that also helps/inspires others on theirs, that&amp;rsquo;s a win-win situation.&lt;/p&gt;
 &lt;p&gt;My other passion is music. I write and perform it solo under the name of &lt;a href=&#34;https://open.spotify.com/album/4kAz9nMW7x79sty5dvDaUM?si=wgZEWeIgT2CX-cItiYrzjQ&#34;&gt;Eriparimies&lt;/a&gt; and I also sing and play the ukulele in a Finnish folk trio &lt;a href=&#34;https://open.spotify.com/album/22w4ujFyiuEs9M2RePkqTV?si=AQQF9Ku6QhysOGLAqXlAhA&#34;&gt;Antti &amp;amp; Isotalo&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://youcanbeapirate.com/./about_files/mv13.jpg&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://youcanbeapirate.netlify.com/./about_files/mv13.jpg&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
 </description>
     </item>
     
     <item>
       <title>Mining Text from PDF Files, Part 1: PDF with Text</title>
-      <link>https://youcanbeapirate.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</link>
+      <link>https://youcanbeapirate.netlify.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</link>
       <pubDate>Sat, 22 May 2021 00:00:00 +0000</pubDate>
-      <guid>https://youcanbeapirate.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</guid>
+      <guid>https://youcanbeapirate.netlify.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</guid>
       <description>
 
 

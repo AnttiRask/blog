@@ -2,46 +2,46 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://youcanbeapirate.com/contact/</loc>
+    <loc>https://youcanbeapirate.netlify.com/contact/</loc>
     <lastmod>2021-05-24T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/about/</loc>
+    <loc>https://youcanbeapirate.netlify.com/about/</loc>
     <lastmod>2021-05-22T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/categories/</loc>
+    <loc>https://youcanbeapirate.netlify.com/categories/</loc>
     <lastmod>2021-05-22T17:02:56+03:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/tags/dataeditr/</loc>
+    <loc>https://youcanbeapirate.netlify.com/tags/dataeditr/</loc>
     <lastmod>2021-05-22T17:02:56+03:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</loc>
+    <loc>https://youcanbeapirate.netlify.com/2021/05/22/mining-text-from-pdf-files-part-1-pdf-with-text/</loc>
     <lastmod>2021-05-22T17:02:56+03:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/tags/pdf/</loc>
+    <loc>https://youcanbeapirate.netlify.com/tags/pdf/</loc>
     <lastmod>2021-05-22T17:02:56+03:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/tags/pdftools/</loc>
+    <loc>https://youcanbeapirate.netlify.com/tags/pdftools/</loc>
     <lastmod>2021-05-22T17:02:56+03:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/post/</loc>
+    <loc>https://youcanbeapirate.netlify.com/post/</loc>
     <lastmod>2021-05-22T17:02:56+03:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/categories/r/</loc>
+    <loc>https://youcanbeapirate.netlify.com/categories/r/</loc>
     <lastmod>2021-05-22T17:02:56+03:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/tags/regex/</loc>
+    <loc>https://youcanbeapirate.netlify.com/tags/regex/</loc>
     <lastmod>2021-05-22T17:02:56+03:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/tags/</loc>
+    <loc>https://youcanbeapirate.netlify.com/tags/</loc>
     <lastmod>2021-05-22T17:02:56+03:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/tags/tidyverse/</loc>
+    <loc>https://youcanbeapirate.netlify.com/tags/tidyverse/</loc>
     <lastmod>2021-05-22T17:02:56+03:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/</loc>
+    <loc>https://youcanbeapirate.netlify.com/</loc>
     <lastmod>2021-05-22T17:02:56+03:00</lastmod>
   </url><url>
-    <loc>https://youcanbeapirate.com/tags/writexl/</loc>
+    <loc>https://youcanbeapirate.netlify.com/tags/writexl/</loc>
     <lastmod>2021-05-22T17:02:56+03:00</lastmod>
   </url>
 </urlset>
