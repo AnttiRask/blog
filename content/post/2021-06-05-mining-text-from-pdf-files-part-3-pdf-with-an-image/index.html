@@ -1,0 +1,523 @@
+---
+title: 'Mining Text from PDF Files, Part 3: PDF with an Image'
+author: "Antti Rask"
+date: '2021-06-05'
+slug: mining-text-from-pdf-files-part-3-pdf-with-an-image
+categories:
+  - R
+tags: []
+lastmod: '2021-06-05T09:11:24+03:00'
+---
+
+
+
+<div id="intro" class="section level1">
+<h1>Intro</h1>
+<p>I wanted to find out how to mine text from PDF files with R. I’m experimenting with different formats, the previous ones having been text and tables. In this last one I will extract text that’s in an image that’s inside a PDF file.</p>
+<p>I’m assuming you’re using RStudio as your IDE (Integrated Development Environment). I’m sure most of this can be done with using something else as well.</p>
+</div>
+<div id="tesseract-and-magick-in-action" class="section level1">
+<h1><strong>tesseract</strong> and <strong>magick</strong> in action</h1>
+<p>For this last PDF experiment, I’m using this awesome package called <a href="https://cran.r-project.org/web/packages/tesseract/vignettes/intro.html">tesseract</a>. It’s a powerful <em>optical character recognition (OCR)</em> engine that supports over 100 languages. Still, a disclaimer is in order. According to the package documentation:</p>
+<blockquote>
+<p>Keep in mind that OCR (pattern recognition in general) is a very difficult problem for computers. Results will rarely be perfect and the accuracy rapidly decreases with the quality of the input image. But if you can get your input images to reasonable quality, Tesseract can often help to extract most of the text from the image.</p>
+</blockquote>
+<p>In order to get the most out of <strong>tesseract</strong>, we’ll also be trying out another cool package called <a href="https://cran.r-project.org/web/packages/magick/vignettes/intro.html">magick</a>. It has a lot of powerful features beyond our scope today and if you’re interested in image prosessing in general, it’s definitely worth checking out.</p>
+<div id="lets-get-ready" class="section level2">
+<h2>1. Let’s get ready</h2>
+<p>Before we go any further, I’m going to load the packages we’ll be needing today:</p>
+<pre class="r"><code>library(tesseract)
+# The main package for this operation
+
+library(magick)
+# Used for image pre-processing when needed
+
+library(pdftools)
+# Not the main &#39;character&#39; today, but we still need this one in the first example
+
+library(tidyverse)
+# Prerequisite to everything
+
+library(writexl)
+# My go-to package for writing Excel files</code></pre>
+<p>I’ll also show you the raw material. If you’d like to try this at home, you can save the PDF file shown below. What we’re looking at here is <a href="https://spotifycharts.com/regional/fi/weekly/2021-05-14--2021-05-21">(Spotify’s weekly top 100 chart for Finland (2021-05-14 - 2021-05-21)</a>, as it is on the web page. I will be using a sample of the first 18 tracks.</p>
+<p>Immediately we can detect some potential trouble ahead with this one. There’s a lot of unnecessary information (the thumbnails, the markers showing whether the song has gone up or down on the list etc.) and the text for artist names and streams is very faint (at least compared to the track names).</p>
+<div class="figure">
+<embed src="images/pdf_with_image_1.pdf" style="width:100.0%" />
+<p class="caption">fig. 1 - The raw material</p>
+</div>
+</div>
+<div id="read-in-the-pdf-file-with-pdftools" class="section level2">
+<h2>2. Read in the PDF file with <strong>pdftools</strong></h2>
+<p>To begin, let’s read in the pdf file using <strong>pdftools</strong>:</p>
+<pre class="r"><code>pdf_with_image_1 &lt;- &quot;index_files/pdf_with_image_1.pdf&quot;
+png_with_image_1 &lt;- pdf_convert(pdf_with_image_1, dpi = 600, format = &quot;png&quot;)
+## Converting page 1 to pdf_with_image_1_1.png... done!</code></pre>
+</div>
+<div id="read-the-image-with-tesseract" class="section level2">
+<h2>3. ‘Read’ the image with <strong>tesseract</strong></h2>
+<p>Let’s see what our baseline is without any pre-prepping.</p>
+<pre class="r"><code>eng &lt;- tesseract(&quot;eng&quot;)
+text_from_image_1 &lt;- ocr(png_with_image_1, engine = eng)
+cat(text_from_image_1)
+## RA 7 4G
+## ~ MONTERO (Call Me By Your Name) 3
+## gg Ms ~ Dark Side © Tal :
+## BN es ye
+## a - © Piilotan mun kyyneleet aloo He
+## or 7 ~ Kiss Me More (feat. SZA) by Dc :
+## oS Life (Sun luo) =dos, BEl
+## fA ~ Astronaut In The Ocean by \Viasked VVolf
+## D&gt; 7 aterm a
+## $ Hyvat hautajaiset by ,
+## [Oa
+## Ne voi liittyy (feat. BIZI) scr
+## Bs ~ Friday (feat. Mufasa &amp; Hypeman) - Dopamine Re-Edit by Ritc EL
+## —“7 Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x3), Bugzy Malone, Buni, Fivio Foreign &amp; Darkoo]
+## ame latte lia eae IP ae) (eb athan Evans
+## i 4 ~ Levitating (feat. DaBaby) by Dua Lip:
+## . ) ~ Prinsessa by Ett
+## D&gt; Hei rakas by 85
+## ib 7» Peaches (feat. Daniel Caesar &amp; Giveon) istin Bie
+## ¥. ; 3 ~» Kaipaan sua (feat. Boyat &amp; Samuli Heimo) &gt; Salat</code></pre>
+<p>Okay, not exactly what we would’ve hoped to see, but not as bad as I feared. 15 out of 18 track names are there and parts of the artist names as well. But a lot of extra noise too. Let’s take care of that first.</p>
+<p>Let’s see what we can do with a slightly cropped version of the same image.</p>
+</div>
+<div id="crop-the-image-with-magick" class="section level2">
+<h2>4. Crop the image with <strong>magick</strong></h2>
+<p>First, we need to know the width of the original image to know what we’re working with here.</p>
+<p>At this point, we’re going to leave <strong>pdftools</strong> behind and use only <strong>magick</strong> (and <strong>tesseract</strong> after the pre-processing is done).</p>
+<p>So, let’s read in the pdf with <em>image_read_pdf()</em> and look at the metadata:</p>
+<pre class="r"><code>png_1 &lt;- image_read_pdf(&quot;index_files/pdf_with_image_1.pdf&quot;)
+
+print(png_1)
+## # A tibble: 1 x 7
+##   format width height colorspace matte filesize density
+##   &lt;chr&gt;  &lt;int&gt;  &lt;int&gt; &lt;chr&gt;      &lt;lgl&gt;    &lt;int&gt; &lt;chr&gt;  
+## 1 PNG     3300   2550 sRGB       TRUE         0 300x300</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="1650" /></p>
+<p>We can see that the image’s width is 3300 (pixels). At the moment that’s the only piece of information we’re interested in.</p>
+<p>So, what if we take away some amount of pixels from the left, so that we’re left with just the text elements.</p>
+<p>(Just like in all the cooking shows on TV, I’ve omitted the part where I tested with different widths to come up with the one that I was happy with, but I don’t want to convey that I magically knew what the correct width was.)</p>
+<p>But now that we know that we want to crop away 700 pixels from the left, we just have to insert the <em>target width</em> (2600) x <em>target height</em> (2550) + <em>crop position from the left</em> (700):</p>
+<pre class="r"><code>png_2 &lt;- png_1 %&gt;% image_crop(&quot;2600x2550+700&quot;)
+
+print(png_2)
+## # A tibble: 1 x 7
+##   format width height colorspace matte filesize density
+##   &lt;chr&gt;  &lt;int&gt;  &lt;int&gt; &lt;chr&gt;      &lt;lgl&gt;    &lt;int&gt; &lt;chr&gt;  
+## 1 PNG     2600   2550 sRGB       TRUE         0 300x300</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="1300" /></p>
+<p>Nice and tidy cropping, isn’t it! What do you think, did that help with the actual text mining? Only one way to find out!</p>
+</div>
+<div id="read-the-cropped-image-with-tesseract" class="section level2">
+<h2>5. ‘Read’ the cropped image with <strong>tesseract</strong></h2>
+<pre class="r"><code># eng &lt;- tesseract(&quot;eng&quot;) &lt;-- we don&#39;t need to run this again
+text_from_image_2 &lt;- ocr(png_2, engine = eng)
+cat(text_from_image_2)
+## - -
+## MONTERO (Call Me By Your Name) by Li! Nz
+## 
+## Dla @-) (+ {Beles
+## 
+## PTET :
+## Piilotan mun kyyneleet by Haloo He
+## 
+## Kiss Me More (feat. SZA) by [ oF}
+## 
+## Life (Sun luo) edos, BE
+## 
+## Astronaut In The Ocean by Masked Wolf
+## 
+## Frida by BEF
+## 
+## Hyvat hautajaiset by F ar6n
+## 
+## Ne voi liittyy (feat. BIZI) stee
+## 
+## Friday (feat. Mufasa &amp; Hypeman) - Dopamine Re-Edit by Ritc eee Mae
+## 
+## Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x3), Bugzy Malone, Buni, Fivio Foreign &amp; Darkoo]
+## 
+## Meee Bit lis ear nen PD astm Crem cuih at aE
+## 
+## Levitating (feat. DaBaby) by Dua Lip=
+## 
+## Prinsessa by Ett&lt;
+## 
+## a (0 e- | &lt; eeslale
+## 
+## Peaches (feat. Daniel Caesar &amp; Giveon) ustin Bie
+## 
+## Kaipaan sua (feat. Boyat &amp; Samuli Heimo) 2ko Salat</code></pre>
+<p>Interesting! As the Finnish saying goes, “That doesn’t take us to the moon, yet”, but we did get rid of that extra noise. And if we were really trying to use this data, it would be the crucial first step.</p>
+<p>However, now only 14 out of 18 track names are correct. So we lost one track name in the process.</p>
+<p>Let’s not worry too much about that at the moment. But I wonder if we could do some more <strong>magick</strong> tricks with the image and see if that helps at all with the recognition.</p>
+<p>We’ll be using some of the method mentioned in the documentation for <a href="https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html"><strong>Tesseract</strong> (the algorithm, not the R package with a lower case r).</a></p>
+</div>
+<div id="use-magick-to-make-the-image-more-readable-for-the-machine" class="section level2">
+<h2>6. Use <strong>magick</strong> to make the image more readable for the machine</h2>
+<p>The first thing to try out is to make a negative version of the image. Why? Because I’m thinking that the grey text would perhaps be easier to distinguish from a white background than from a black one. But that’s just a theory, so let’s find out what negating the image does to it and our results:</p>
+<pre class="r"><code># Negating the image
+png_2_negated &lt;- png_2 %&gt;% 
+  image_negate()
+
+# Using that negated image to &#39;read&#39; the text
+png_2_negated %&gt;%
+  ocr(engine = eng) %&gt;%
+  cat()
+## = G
+## MONTERO (Call Me By Your Name) by Li! Nz
+## 
+## Dark Side by £
+## 
+## Pettaja ;
+## Piilotan mun kyyneleet by Haloo He
+## 
+## Kiss Me More (feat. SZA) by [ Sat
+## 
+## Life (Sun luo) edos, BE
+## 
+## Astronaut In The Ocean by Masked Wolf
+## 
+## Frida by BEF
+## 
+## Hyvat hautajaiset by F ar6n
+## 
+## Ne voi liittyy (feat. BIZI) stee
+## 
+## Friday (feat. Mufasa &amp; Hypeman) - Dopamine Re-Edit by Ritc ghtcrawlers
+## 
+## Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x3), Bugzy Malone, Buni, Fivio Foreign &amp; Darkoo]
+## 
+## Wellerman - Sea Shanty / 220 KID x Billen Ted Remix at Eve
+## 
+## Levitating (feat. DaBaby) by Dua Lip=
+## 
+## Prinsessa by Ett&lt;
+## 
+## Hei rakas by BEF
+## 
+## Peaches (feat. Daniel Caesar &amp; Giveon) ustin Bie
+## 
+## Kaipaan sua (feat. Boyat &amp; Samuli Heimo) 2ko Salat
+
+# Printing out the negated image
+png_2_negated</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="1300" /></p>
+<p>A great start! That one thing lead to us having all of the track names there. Let’s then convert the image to Grayscale to see if we could get more information out of it:</p>
+<pre class="r"><code># Negating the image
+png_2_grayscale &lt;- png_2_negated %&gt;% 
+  image_convert(type = &quot;Grayscale&quot;)
+
+# Using that negated image to &#39;read&#39; the text
+png_2_grayscale %&gt;%
+  ocr(engine = eng) %&gt;%
+  cat()
+## STRE ?
+## MONTERO (Call Me By Your Name)
+## Dark Side by Blinc :
+## Pettaja
+## Piilotan mun kyyneleet
+## Kiss Me More (feat. SZA) by Doja C
+## Life (Sun luo) 2dos
+## Astronaut In The Ocean
+## Frida by BE}
+## Hyvat hautajaiset by F s, Ein
+## Ne voi liittyy (feat. BIZ!) stee
+## Friday (feat. Mufasa &amp; Hypeman) - Dopamine Re-Edit ‘: ghtc
+## Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x3), Bugzy Malone, Buni, Fivio Foreign &amp; Darkoo]
+## Wellerman - Sea Shanty / 220 KID x Billen Ted Remix athan E
+## Levitating (feat. DaBaby) ua Lipz
+## Prinsessa
+## Hei rakas by BE
+## Peaches (feat. Daniel Caesar &amp; Giveon)
+## Kaipaan sua (feat. Boyat &amp; Samuli Heimo) 2ko Sala
+
+# Printing out the negated image
+png_2_grayscale</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="1300" /></p>
+<p>Some conflicting results there. <em>Grayscaling</em> helped with some rows, but hindered with others. But let’s keep going and see if additional image transformations will be of use.</p>
+<p>Let’s see if <em>resizing</em> is of any use (<strong>CAUTION!</strong> Making the image too large will take a long while for the computer to process. Why do I know that? It’s the curiosity that killed the cat…):</p>
+<pre class="r"><code># Negating the image
+png_2_resized &lt;- png_2_grayscale %&gt;% 
+  image_resize(&quot;4000x&quot;)
+
+# Using that negated image to &#39;read&#39; the text
+png_2_resized %&gt;%
+  ocr(engine = eng) %&gt;%
+  cat()
+## STRE ?
+## MONTERO (Call Me By Your Name)
+## Dark Side by § :
+## Pettaja
+## Piilotan mun kyyneleet by Haloo Hels
+## Kiss Me More (feat. SZA) by Doja Cat
+## Life (Sun luo) Jos, BE
+## Astronaut In The Ocean :
+## Frida by BE
+## Hyvat hautajaiset « BE aror
+## Ne voi liittyy (feat. BIZI) :
+## Friday (feat. Mufasa &amp; Hypeman) - Dopamine Re-Edit yhtcr
+## Body (Remix) [feat. ArrDee, E1(3x3), ZT (3x3), Bugzy Malone, Buni, Fivio Foreign &amp; Darkoo] &amp;:
+## Wellerman - Sea Shanty / 220 KID x Billen Ted Remix athan Ev
+## Levitating (feat. DaBaby) 4a Lipz
+## Prinsessa by Ett&lt;
+## Hei rakas by BE
+## Peaches (feat. Daniel Caesar &amp; Giveon) : 3
+## Kaipaan sua (feat. Boyat &amp; Samuli Heimo) ate
+
+# Printing out the negated image
+png_2_resized</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="2000" /></p>
+<p>Next up, <em>trimming</em>.</p>
+<pre class="r"><code># Negating the image
+png_2_trimmed &lt;- png_2_resized %&gt;% 
+  image_trim(fuzz = 80)
+
+# The fuzz parameter allows for the fill to cross for adjacent pixels with similarish colors. Its value must be between 0 and 256^2 specifying the max geometric distance between colors to be considered equal.
+
+# Using that negated image to &#39;read&#39; the text
+png_2_trimmed %&gt;%
+  ocr(engine = eng) %&gt;%
+  cat()
+## TRACK STREAMS (?
+## MONTERO (Call Me By Your Name) by Li! Nas x 275,091
+## Dark Side by Blind Channe! 260.403
+## Pettaja by SANN| 255,770
+## Piilotan mun kyyneleet by Haloo Helsinki! 238,089
+## Kiss Me More (feat. SZA) by Doja Cat 236,820
+## Life (Sun luo) by Cledos, BEHM 224,839
+## Astronaut In The Ocean by \Viasked VVolf 202,630
+## Frida by BEHM 200,910
+## Hyvat hautajaiset by Pyhimys, Eino Grén 196 , 586
+## Ne voi liittyy (feat. BIZI) by costee 194,852
+## Friday (feat. Mufasa &amp; Hypeman) - Dopamine Re-Edit by Riton, Nightcrawilers 186,470
+## Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x3), Bugzy Malone, Buni, Fivio Foreign &amp; Darkoo] by eS
+## Tion Wayne, Russ Millions aes
+## 
+## Wellerman - Sea Shanty / 220 KID x Billen Ted Remix by Nathan Evans 182,353
+## Levitating (feat. DaBaby) by Dua Lipa 180 , 922
+## Prinsessa by Etta 175.544
+## Hei rakas by BEH!V/ 168,578
+## Peaches (feat. Daniel Caesar &amp; Giveon) by Justin Bieber 167 .833
+## Kaipaan sua (feat. Boyat &amp; Samuli Heimo) by Keko Salate 158 , 543
+
+# Printing out the negated image
+png_2_trimmed</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="1736" /></p>
+<p>Wow! Just by removing the extra margins, we were able to get most of the data to come out. One interesting thing to try would be to see whether you could just use that <em>image_trim()</em> alone and reach the same place without all the other steps. I suggest you try that!</p>
+<p>Also, if this was for work, I would spend more time analysing the different combinations of the steps we’ve tried so far and some steps we have yet to try.</p>
+<p>But for now this will do. The improvement from the beginning to here is really impressive! So, let’s finish this by doing some cleanup.</p>
+</div>
+<div id="create-a-character-vector-split-it-into-a-list-and-then-convert-it-to-a-tibble" class="section level2">
+<h2>7. Create a <em>character vector</em>, split it into a <em>list</em> and then convert it to a <em>tibble</em></h2>
+<p>Here we’re just using the same methods as in the two previous posts.</p>
+<pre class="r"><code># Use tesseract to make a character vector and then split it into a list
+png_2_list &lt;- png_2_trimmed %&gt;%
+  ocr(engine = eng) %&gt;%
+  strsplit(split = &quot;\n&quot;)
+
+# Unlist that list and convert it to a tibble  
+png_2_tbl &lt;- as_tibble(unlist(png_2_list))
+
+png_2_tbl
+## # A tibble: 21 x 1
+##    value                                                
+##    &lt;chr&gt;                                                
+##  1 &quot;TRACK STREAMS (?&quot;                                   
+##  2 &quot;MONTERO (Call Me By Your Name) by Li! Nas x 275,091&quot;
+##  3 &quot;Dark Side by Blind Channe! 260.403&quot;                 
+##  4 &quot;Pettaja by SANN| 255,770&quot;                           
+##  5 &quot;Piilotan mun kyyneleet by Haloo Helsinki! 238,089&quot;  
+##  6 &quot;Kiss Me More (feat. SZA) by Doja Cat 236,820&quot;       
+##  7 &quot;Life (Sun luo) by Cledos, BEHM 224,839&quot;             
+##  8 &quot;Astronaut In The Ocean by \\Viasked VVolf 202,630&quot;  
+##  9 &quot;Frida by BEHM 200,910&quot;                              
+## 10 &quot;Hyvat hautajaiset by Pyhimys, Eino Grén 196 , 586&quot;  
+## # ... with 11 more rows</code></pre>
+<p>From here it’s pretty straightforward to get to the cleaned excel file. We will have to make some adjustments that are pretty manual, so this wouldn’t do in a more production environment.</p>
+<p>Still, cleaning up the data does have some interesting steps and is always good practice, so, without further ado, let’s do this!</p>
+</div>
+<div id="remove-first-row-and-add-the-missing-value-manually-to-empty-row" class="section level2">
+<h2>8. Remove first row and add the missing value manually to empty row</h2>
+<p>We won’t be needing that <em>TRACK STREAMS (?</em> text, so let’s get rid of it with <em>slice()</em>. Also, for the next steps, involving regex, to work, we need to insert the missing value and we’ll insert it on row 14 that is conveniently empty.</p>
+<pre class="r"><code>png_2_filtered_tbl &lt;- png_2_tbl %&gt;%
+  slice(-1) # Note to self and others: slice(n) to keep the nth row, slice(-n) to get rid of it
+  
+png_2_filtered_tbl[14, 1] &lt;- &quot; 182,369&quot;
+
+png_2_filtered_tbl
+## # A tibble: 20 x 1
+##    value                                                                        
+##    &lt;chr&gt;                                                                        
+##  1 &quot;MONTERO (Call Me By Your Name) by Li! Nas x 275,091&quot;                        
+##  2 &quot;Dark Side by Blind Channe! 260.403&quot;                                         
+##  3 &quot;Pettaja by SANN| 255,770&quot;                                                   
+##  4 &quot;Piilotan mun kyyneleet by Haloo Helsinki! 238,089&quot;                          
+##  5 &quot;Kiss Me More (feat. SZA) by Doja Cat 236,820&quot;                               
+##  6 &quot;Life (Sun luo) by Cledos, BEHM 224,839&quot;                                     
+##  7 &quot;Astronaut In The Ocean by \\Viasked VVolf 202,630&quot;                          
+##  8 &quot;Frida by BEHM 200,910&quot;                                                      
+##  9 &quot;Hyvat hautajaiset by Pyhimys, Eino Grén 196 , 586&quot;                          
+## 10 &quot;Ne voi liittyy (feat. BIZI) by costee 194,852&quot;                              
+## 11 &quot;Friday (feat. Mufasa &amp; Hypeman) - Dopamine Re-Edit by Riton, Nightcrawilers~
+## 12 &quot;Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x3), Bugzy Malone, Buni, Fivio F~
+## 13 &quot;Tion Wayne, Russ Millions aes&quot;                                              
+## 14 &quot; 182,369&quot;                                                                   
+## 15 &quot;Wellerman - Sea Shanty / 220 KID x Billen Ted Remix by Nathan Evans 182,353&quot;
+## 16 &quot;Levitating (feat. DaBaby) by Dua Lipa 180 , 922&quot;                            
+## 17 &quot;Prinsessa by Etta 175.544&quot;                                                  
+## 18 &quot;Hei rakas by BEH!V/ 168,578&quot;                                                
+## 19 &quot;Peaches (feat. Daniel Caesar &amp; Giveon) by Justin Bieber 167 .833&quot;           
+## 20 &quot;Kaipaan sua (feat. Boyat &amp; Samuli Heimo) by Keko Salate 158 , 543&quot;</code></pre>
+</div>
+<div id="merge-rows-with-the-help-of-unpivotr" class="section level2">
+<h2>9. Merge rows with the help of <strong>unpivotr</strong></h2>
+<p>In the previous post we used janitor to help with the data cleanup. This time we’ll use another nice little package called <a href="https://cran.r-project.org/web/packages/unpivotr/vignettes/introduction.html">unpivotr</a>.</p>
+<p>And again, since we only need it this once, we might as well call it writing ‘package::function()’ instead of library(package) and function() separately.</p>
+<pre class="r"><code>png_2_merged_tbl &lt;- unpivotr::merge_rows(
+  unpivotr::as_cells(png_2_filtered_tbl), 
+  rows = 12:14, 
+  chr) %&gt;% 
+  arrange(row) %&gt;% # arrange is needed to get the rows in right order for later
+  select(chr) # after merge_rows and as_cells we need this select, otherwise there would be three other columns to worry about
+
+png_2_merged_tbl
+## # A tibble: 18 x 1
+##    chr                                                                          
+##    &lt;chr&gt;                                                                        
+##  1 &quot;MONTERO (Call Me By Your Name) by Li! Nas x 275,091&quot;                        
+##  2 &quot;Dark Side by Blind Channe! 260.403&quot;                                         
+##  3 &quot;Pettaja by SANN| 255,770&quot;                                                   
+##  4 &quot;Piilotan mun kyyneleet by Haloo Helsinki! 238,089&quot;                          
+##  5 &quot;Kiss Me More (feat. SZA) by Doja Cat 236,820&quot;                               
+##  6 &quot;Life (Sun luo) by Cledos, BEHM 224,839&quot;                                     
+##  7 &quot;Astronaut In The Ocean by \\Viasked VVolf 202,630&quot;                          
+##  8 &quot;Frida by BEHM 200,910&quot;                                                      
+##  9 &quot;Hyvat hautajaiset by Pyhimys, Eino Grén 196 , 586&quot;                          
+## 10 &quot;Ne voi liittyy (feat. BIZI) by costee 194,852&quot;                              
+## 11 &quot;Friday (feat. Mufasa &amp; Hypeman) - Dopamine Re-Edit by Riton, Nightcrawilers~
+## 12 &quot;Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x3), Bugzy Malone, Buni, Fivio F~
+## 13 &quot;Wellerman - Sea Shanty / 220 KID x Billen Ted Remix by Nathan Evans 182,353&quot;
+## 14 &quot;Levitating (feat. DaBaby) by Dua Lipa 180 , 922&quot;                            
+## 15 &quot;Prinsessa by Etta 175.544&quot;                                                  
+## 16 &quot;Hei rakas by BEH!V/ 168,578&quot;                                                
+## 17 &quot;Peaches (feat. Daniel Caesar &amp; Giveon) by Justin Bieber 167 .833&quot;           
+## 18 &quot;Kaipaan sua (feat. Boyat &amp; Samuli Heimo) by Keko Salate 158 , 543&quot;</code></pre>
+<p>Alright, now for the fun part, our old pal <em>regex</em>.</p>
+</div>
+<div id="split-the-data-into-3-columns-using-regex-and-tidyrs-extract" class="section level2">
+<h2>10. Split the data into 3 columns using <em>regex</em> and <strong>tidyr</strong>’s <em>extract()</em></h2>
+<p>We choose the column (chr) we want to split up, then tell <em>extract()</em> the target column names, then the regex part, which is basically saying that let’s put everything before the word by to the first column <em>([^:]+)</em>, then let’s put everything afeter the word by to the second columnn <em>([^-]+)</em>, but any two groups of numbers (that have , or . in the middle) that are at the end of the row, should be put to the third column <em>(\d+.[,.].\d+$)</em>.</p>
+<p>And yes, those empty characters matter. Without them, the cells would have those empty characters before or after the values we want.</p>
+<pre class="r"><code>png_2_regex_tbl &lt;- extract(png_2_merged_tbl,  
+                           chr, 
+                           into = c(&#39;track&#39;, &#39;artist&#39;, &#39;streams&#39;),
+                           &#39;([^:]+) by ([^-]+) (\\d+.[,.].\\d+$)&#39;, 
+                           convert = TRUE)
+
+png_2_regex_tbl
+## # A tibble: 18 x 3
+##    track                                         artist                 streams 
+##    &lt;chr&gt;                                         &lt;chr&gt;                  &lt;chr&gt;   
+##  1 MONTERO (Call Me By Your Name)                &quot;Li! Nas x&quot;            275,091 
+##  2 Dark Side                                     &quot;Blind Channe!&quot;        260.403 
+##  3 Pettaja                                       &quot;SANN|&quot;                255,770 
+##  4 Piilotan mun kyyneleet                        &quot;Haloo Helsinki!&quot;      238,089 
+##  5 Kiss Me More (feat. SZA)                      &quot;Doja Cat&quot;             236,820 
+##  6 Life (Sun luo)                                &quot;Cledos, BEHM&quot;         224,839 
+##  7 Astronaut In The Ocean                        &quot;\\Viasked VVolf&quot;      202,630 
+##  8 Frida                                         &quot;BEHM&quot;                 200,910 
+##  9 Hyvat hautajaiset                             &quot;Pyhimys, Eino Grén&quot;   196 , 5~
+## 10 Ne voi liittyy (feat. BIZI)                   &quot;costee&quot;               194,852 
+## 11 Friday (feat. Mufasa &amp; Hypeman) - Dopamine R~ &quot;Riton, Nightcrawiler~ 186,470 
+## 12 Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x~ &quot;eS Tion Wayne, Russ ~ 182,369 
+## 13 Wellerman - Sea Shanty / 220 KID x Billen Te~ &quot;Nathan Evans&quot;         182,353 
+## 14 Levitating (feat. DaBaby)                     &quot;Dua Lipa&quot;             180 , 9~
+## 15 Prinsessa                                     &quot;Etta&quot;                 175.544 
+## 16 Hei rakas                                     &quot;BEH!V/&quot;               168,578 
+## 17 Peaches (feat. Daniel Caesar &amp; Giveon)        &quot;Justin Bieber&quot;        167 .833
+## 18 Kaipaan sua (feat. Boyat &amp; Samuli Heimo)      &quot;Keko Salate&quot;          158 , 5~</code></pre>
+<p>Almost there! Time for the final cleanup with some <strong>tidyverse</strong> magic!</p>
+</div>
+<div id="final-cleanup-with-tidyverse-goodness" class="section level2">
+<h2>11. Final cleanup with <strong>tidyverse</strong> goodness</h2>
+<p>I won’t go through everything in detail, but in the next chunk of code, we first clean up the <em>streams</em> column and make it <em>numeric</em>.</p>
+<p>Then we use <em>case_when()</em> (such a great function!) to correct any spelling mistakes left.</p>
+<p>We add the <em>rank</em> column and populate it with <em>row_number()</em> (that’s why we needed to use <em>arrange()</em> earlier).</p>
+<p>And finally, we use select to order the columns nicely.</p>
+<pre class="r"><code>png_2_final_tbl &lt;- png_2_regex_tbl %&gt;%
+  
+  mutate(
+    
+    streams = png_2_regex_tbl$streams %&gt;% 
+      str_remove_all(pattern = regex(&quot;[ ., ]&quot;)) %&gt;% as.numeric(),
+    
+    track = case_when(
+      track == &quot;Pettaja&quot; ~ &quot;Pettäjä&quot;,
+      track == &quot;Hyvat hautajaiset&quot; ~ &quot;Hyvät hautajaiset&quot;,
+      TRUE ~ track),
+    
+    artist = case_when(
+      artist == &quot;Li! Nas x&quot; ~ &quot;Lil Nas X&quot;,
+      artist == &quot;Blind Channe!&quot; ~ &quot;Blind Channel&quot;,
+      artist == &quot;SANN|&quot; ~ &quot;SANNI&quot;,
+      artist == &quot;\\Viasked VVolf&quot; ~ &quot;Masked Wolf&quot;,
+      artist == &quot;Pyhimys, Eino Grén&quot; ~ &quot;Pyhimys, Eino Grön&quot;,
+      artist == &quot;Riton, Nightcrawilers&quot; ~ &quot;Riton, Nightcrawlers&quot;,
+      artist == &quot;BEH!V/&quot; ~ &quot;BEHM&quot;,
+      artist == &quot;Keko Salate&quot; ~ &quot;Keko Salata&quot;,
+      str_detect(artist, &quot;Tion Wayne&quot;) ~ &quot;Tion Wayne, Russ Millions&quot;,
+      TRUE ~ artist),
+    
+    rank = row_number()
+  
+    ) %&gt;% 
+  
+  select(artist, track, rank, streams)
+
+png_2_final_tbl
+## # A tibble: 18 x 4
+##    artist            track                                          rank streams
+##    &lt;chr&gt;             &lt;chr&gt;                                         &lt;int&gt;   &lt;dbl&gt;
+##  1 Lil Nas X         MONTERO (Call Me By Your Name)                    1  275091
+##  2 Blind Channel     Dark Side                                         2  260403
+##  3 SANNI             Pettäjä                                           3  255770
+##  4 Haloo Helsinki!   Piilotan mun kyyneleet                            4  238089
+##  5 Doja Cat          Kiss Me More (feat. SZA)                          5  236820
+##  6 Cledos, BEHM      Life (Sun luo)                                    6  224839
+##  7 Masked Wolf       Astronaut In The Ocean                            7  202630
+##  8 BEHM              Frida                                             8  200910
+##  9 Pyhimys, Eino Gr~ Hyvät hautajaiset                                 9  196586
+## 10 costee            Ne voi liittyy (feat. BIZI)                      10  194852
+## 11 Riton, Nightcraw~ Friday (feat. Mufasa &amp; Hypeman) - Dopamine R~    11  186470
+## 12 Tion Wayne, Russ~ Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x~    12  182369
+## 13 Nathan Evans      Wellerman - Sea Shanty / 220 KID x Billen Te~    13  182353
+## 14 Dua Lipa          Levitating (feat. DaBaby)                        14  180922
+## 15 Etta              Prinsessa                                        15  175544
+## 16 BEHM              Hei rakas                                        16  168578
+## 17 Justin Bieber     Peaches (feat. Daniel Caesar &amp; Giveon)           17  167833
+## 18 Keko Salata       Kaipaan sua (feat. Boyat &amp; Samuli Heimo)         18  158543</code></pre>
+<p>Now all that’s left to do is to write the excel file.</p>
+</div>
+<div id="create-excel-file-with-writexl" class="section level2">
+<h2>12. Create Excel file with <strong>writexl</strong></h2>
+<pre class="r"><code>write_xlsx(png_2_final_tbl, &quot;index_files/excel_from_pdf_with_image_2.xlsx&quot;)
+# You should change the file path to suit your needs</code></pre>
+<div class="figure">
+<img src="images/excel_from_image.jpg" alt="" />
+<p class="caption">fig. 2 - Extract from the final Excel file</p>
+</div>
+</div>
+</div>
+<div id="conclusion" class="section level1">
+<h1>Conclusion</h1>
+<p>I can’t help but go back to the quote we started this journey with:</p>
+<blockquote>
+<p>Keep in mind that OCR (pattern recognition in general) is a very difficult problem for computers. Results will rarely be perfect and the accuracy rapidly decreases with the quality of the input image. But if you can get your input images to reasonable quality, Tesseract can often help to extract most of the text from the image.</p>
+</blockquote>
+<p>I feel like everything that was said in that quote was realised during this experiment. And even if I had to use some manual data cleaning to get to the clean excel file, I’m still super impressed by both <strong>tesseract</strong> and <strong>magick</strong>. This was the first time using them both and we still got pretty far!</p>
+<p>Now it’s time to end this mini-trilogy. Let’s see what I come up with next. It might be another test run with a cool package I want to learn to use or it might be more generally about my learning journey.</p>
+<p>If you’ve read this far, thanks for your time and interest! If you have any questions or comments, don’t hesitate to contact me on LinkedIn (since I still haven’t managed to add the Disqus module for comments, but I’m working on it)!</p>
+</div>
