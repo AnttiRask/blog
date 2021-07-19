@@ -1,14 +1,24 @@
 ---
 title: 'Mining Text from PDF Files, Part 3: PDF with an Image'
-author: "Antti Rask"
+author: Antti Rask
 date: '2021-06-05'
-slug: mining-text-from-pdf-files-part-3-pdf-with-an-image
 categories:
   - R
-tags: []
+tags:
+  - magick
+  - OCR
+  - pdf
+  - pdftools
+  - regex
+  - tesseract
+  - tidyverse
+  - unpivotr
+  - writexl
+slug: mining-text-from-pdf-files-part-3-pdf-with-an-image
 lastmod: '2021-06-05T09:11:24+03:00'
 ---
 
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
 
 
 <div id="intro" class="section level1">
@@ -98,8 +108,8 @@ print(png_1)
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="1650" /></p>
 <p>We can see that the image’s width is 3300 (pixels). At the moment that’s the only piece of information we’re interested in.</p>
 <p>So, what if we take away some amount of pixels from the left, so that we’re left with just the text elements.</p>
-<p>(Just like in all the cooking shows on TV, I’ve omitted the part where I tested with different widths to come up with the one that I was happy with, but I don’t want to convey that I magically knew what the correct width was.)</p>
-<p>But now that we know that we want to crop away 700 pixels from the left, we just have to insert the <em>target width</em> (2600) x <em>target height</em> (2550) + <em>crop position from the left</em> (700):</p>
+<p>(Just like in all the cooking shows on TV, I’ve omitted the part where I tested with different widths to come up with the one that I was happy with.)</p>
+<p>But now that we know that we want to crop away 700 pixels from the left, we just have to insert the <em>target width</em> (2600) x <em>target height</em> (2550) + <em>crop position from the left</em> (700) to <em>image_crop()</em>:</p>
 <pre class="r"><code>png_2 &lt;- png_1 %&gt;% image_crop(&quot;2600x2550+700&quot;)
 
 print(png_2)
@@ -150,14 +160,14 @@ cat(text_from_image_2)
 ## Peaches (feat. Daniel Caesar &amp; Giveon) ustin Bie
 ## 
 ## Kaipaan sua (feat. Boyat &amp; Samuli Heimo) 2ko Salat</code></pre>
-<p>Interesting! As the Finnish saying goes, “That doesn’t take us to the moon, yet”, but we did get rid of that extra noise. And if we were really trying to use this data, it would be the crucial first step.</p>
-<p>However, now only 14 out of 18 track names are correct. So we lost one track name in the process.</p>
-<p>Let’s not worry too much about that at the moment. But I wonder if we could do some more <strong>magick</strong> tricks with the image and see if that helps at all with the recognition.</p>
-<p>We’ll be using some of the method mentioned in the documentation for <a href="https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html"><strong>Tesseract</strong> (the algorithm, not the R package with a lower case r).</a></p>
+<p>Interesting! As the Finnish saying goes, “That doesn’t take us to the moon, yet”. But we did get rid of the extra noise. A crucial first step.</p>
+<p>However, now only 14 out of 18 track names are correct. So we lost one track name in the process. Let’s not worry too much about that at the moment, though.</p>
+<p>I do wonder if we could do some more <strong>magick</strong> tricks with the image and see if that helps at all with the recognition.</p>
+<p>We’ll be using some of the methods mentioned in the documentation for <a href="https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html"><strong>Tesseract</strong></a> (the algorithm, not the R package with a lower case r).</p>
 </div>
-<div id="use-magick-to-make-the-image-more-readable-for-the-machine" class="section level2">
-<h2>6. Use <strong>magick</strong> to make the image more readable for the machine</h2>
-<p>The first thing to try out is to make a negative version of the image. Why? Because I’m thinking that the grey text would perhaps be easier to distinguish from a white background than from a black one. But that’s just a theory, so let’s find out what negating the image does to it and our results:</p>
+<div id="use-magick-to-make-the-image-more-machine-friendly" class="section level2">
+<h2>6. Use <strong>magick</strong> to make the image more machine friendly</h2>
+<p>The first thing to try out is to make a negative version of the image. Why? Because I’m thinking that the grey text would perhaps be easier to distinguish from a white background than from a black one.</p>
 <pre class="r"><code># Negating the image
 png_2_negated &lt;- png_2 %&gt;% 
   image_negate()
@@ -206,11 +216,11 @@ png_2_negated %&gt;%
 png_2_negated</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="1300" /></p>
 <p>A great start! That one thing lead to us having all of the track names there. Let’s then convert the image to Grayscale to see if we could get more information out of it:</p>
-<pre class="r"><code># Negating the image
+<pre class="r"><code># Grayscaling the image
 png_2_grayscale &lt;- png_2_negated %&gt;% 
   image_convert(type = &quot;Grayscale&quot;)
 
-# Using that negated image to &#39;read&#39; the text
+# Using that grayscaled image to &#39;read&#39; the text
 png_2_grayscale %&gt;%
   ocr(engine = eng) %&gt;%
   cat()
@@ -234,16 +244,16 @@ png_2_grayscale %&gt;%
 ## Peaches (feat. Daniel Caesar &amp; Giveon)
 ## Kaipaan sua (feat. Boyat &amp; Samuli Heimo) 2ko Sala
 
-# Printing out the negated image
+# Printing out the grayscaled image
 png_2_grayscale</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="1300" /></p>
-<p>Some conflicting results there. <em>Grayscaling</em> helped with some rows, but hindered with others. But let’s keep going and see if additional image transformations will be of use.</p>
-<p>Let’s see if <em>resizing</em> is of any use (<strong>CAUTION!</strong> Making the image too large will take a long while for the computer to process. Why do I know that? It’s the curiosity that killed the cat…):</p>
-<pre class="r"><code># Negating the image
+<p>Some conflicting results there. <em>Grayscaling</em> helped with some rows, but hindered with others. Let’s keep going and see if additional image transformations will be of use.</p>
+<p>How about <em>resizing</em>? (<strong>CAUTION!</strong> Making the image too large will take a long while for the computer to process. Why do I know that? I’m sure you can guess the reason…):</p>
+<pre class="r"><code># Resizing the image
 png_2_resized &lt;- png_2_grayscale %&gt;% 
   image_resize(&quot;4000x&quot;)
 
-# Using that negated image to &#39;read&#39; the text
+# Using that resized image to &#39;read&#39; the text
 png_2_resized %&gt;%
   ocr(engine = eng) %&gt;%
   cat()
@@ -267,17 +277,17 @@ png_2_resized %&gt;%
 ## Peaches (feat. Daniel Caesar &amp; Giveon) : 3
 ## Kaipaan sua (feat. Boyat &amp; Samuli Heimo) ate
 
-# Printing out the negated image
+# Printing out the resized image
 png_2_resized</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="2000" /></p>
-<p>Next up, <em>trimming</em>.</p>
-<pre class="r"><code># Negating the image
+<p>Next up, <em>trimming</em> the margins.</p>
+<pre class="r"><code># Trimming the image
 png_2_trimmed &lt;- png_2_resized %&gt;% 
   image_trim(fuzz = 80)
 
 # The fuzz parameter allows for the fill to cross for adjacent pixels with similarish colors. Its value must be between 0 and 256^2 specifying the max geometric distance between colors to be considered equal.
 
-# Using that negated image to &#39;read&#39; the text
+# Using that trimmed image to &#39;read&#39; the text
 png_2_trimmed %&gt;%
   ocr(engine = eng) %&gt;%
   cat()
@@ -303,16 +313,15 @@ png_2_trimmed %&gt;%
 ## Peaches (feat. Daniel Caesar &amp; Giveon) by Justin Bieber 167 .833
 ## Kaipaan sua (feat. Boyat &amp; Samuli Heimo) by Keko Salate 158 , 543
 
-# Printing out the negated image
+# Printing out the trimmed image
 png_2_trimmed</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="1736" /></p>
-<p>Wow! Just by removing the extra margins, we were able to get most of the data to come out. One interesting thing to try would be to see whether you could just use that <em>image_trim()</em> alone and reach the same place without all the other steps. I suggest you try that!</p>
-<p>Also, if this was for work, I would spend more time analysing the different combinations of the steps we’ve tried so far and some steps we have yet to try.</p>
-<p>But for now this will do. The improvement from the beginning to here is really impressive! So, let’s finish this by doing some cleanup.</p>
+<p>Wow! Just by removing the extra margins, we were able to get most of the data to appear. One interesting thing to try would be to see whether you could just use that <em>image_trim()</em> alone and reach the same place without all the other steps. I suggest you try that!</p>
+<p>Also, I could spend more time analysing the different combinations of the steps we’ve tried so far and some steps we have yet to try. However, to be able to release this blog post, I must stop somewhere.</p>
+<p>So, for now, this will do. The improvement from the beginning to here is really impressive! So, let’s finish this by doing some cleanup.</p>
 </div>
 <div id="create-a-character-vector-split-it-into-a-list-and-then-convert-it-to-a-tibble" class="section level2">
 <h2>7. Create a <em>character vector</em>, split it into a <em>list</em> and then convert it to a <em>tibble</em></h2>
-<p>Here we’re just using the same methods as in the two previous posts.</p>
 <pre class="r"><code># Use tesseract to make a character vector and then split it into a list
 png_2_list &lt;- png_2_trimmed %&gt;%
   ocr(engine = eng) %&gt;%
@@ -336,16 +345,16 @@ png_2_tbl
 ##  9 &quot;Frida by BEHM 200,910&quot;                              
 ## 10 &quot;Hyvat hautajaiset by Pyhimys, Eino Grén 196 , 586&quot;  
 ## # ... with 11 more rows</code></pre>
-<p>From here it’s pretty straightforward to get to the cleaned excel file. We will have to make some adjustments that are pretty manual, so this wouldn’t do in a more production environment.</p>
+<p>From here it’s pretty straightforward to get to the cleaned excel file. We will have to make some adjustments that are quite manual, so this wouldn’t do if we had a bunch of these files to extract text from.</p>
 <p>Still, cleaning up the data does have some interesting steps and is always good practice, so, without further ado, let’s do this!</p>
 </div>
 <div id="remove-first-row-and-add-the-missing-value-manually-to-empty-row" class="section level2">
 <h2>8. Remove first row and add the missing value manually to empty row</h2>
-<p>We won’t be needing that <em>TRACK STREAMS (?</em> text, so let’s get rid of it with <em>slice()</em>. Also, for the next steps, involving regex, to work, we need to insert the missing value and we’ll insert it on row 14 that is conveniently empty.</p>
+<p>We won’t be needing that “TRACK STREAMS (?” text, so let’s get rid of it with <em>slice()</em>. Also, for the next steps involving regex to work, we need to insert the missing value and we’ll insert it on row 14 that is conveniently empty.</p>
 <pre class="r"><code>png_2_filtered_tbl &lt;- png_2_tbl %&gt;%
   slice(-1) # Note to self and others: slice(n) to keep the nth row, slice(-n) to get rid of it
   
-png_2_filtered_tbl[14, 1] &lt;- &quot; 182,369&quot;
+png_2_filtered_tbl[14, 1] &lt;- &quot; 182,369&quot; # that empty character in front of the value is there on purpose... it will come in handy later with regex
 
 png_2_filtered_tbl
 ## # A tibble: 20 x 1
@@ -409,7 +418,7 @@ png_2_merged_tbl
 </div>
 <div id="split-the-data-into-3-columns-using-regex-and-tidyrs-extract" class="section level2">
 <h2>10. Split the data into 3 columns using <em>regex</em> and <strong>tidyr</strong>’s <em>extract()</em></h2>
-<p>We choose the column (chr) we want to split up, then tell <em>extract()</em> the target column names, then the regex part, which is basically saying that let’s put everything before the word by to the first column <em>([^:]+)</em>, then let’s put everything afeter the word by to the second columnn <em>([^-]+)</em>, but any two groups of numbers (that have , or . in the middle) that are at the end of the row, should be put to the third column <em>(\d+.[,.].\d+$)</em>.</p>
+<p>We choose the column (<em>chr</em>) we want to split up, then tell <em>extract()</em> the target column names, then the regex part, which is basically saying that let’s put everything before the word by to the first column <em>([^:]+)</em>, let’s put everything after the word <em>by</em> to the second columnn <em>([^-]+)</em>, but any two groups of numbers (that have <em>,</em> or <em>.</em> in the middle) that are at the end of the row, should be put to the third column <em>(\d+.[,.].\d+$)</em>.</p>
 <p>And yes, those empty characters matter. Without them, the cells would have those empty characters before or after the values we want.</p>
 <pre class="r"><code>png_2_regex_tbl &lt;- extract(png_2_merged_tbl,  
                            chr, 
@@ -517,7 +526,7 @@ png_2_final_tbl
 <blockquote>
 <p>Keep in mind that OCR (pattern recognition in general) is a very difficult problem for computers. Results will rarely be perfect and the accuracy rapidly decreases with the quality of the input image. But if you can get your input images to reasonable quality, Tesseract can often help to extract most of the text from the image.</p>
 </blockquote>
-<p>I feel like everything that was said in that quote was realised during this experiment. And even if I had to use some manual data cleaning to get to the clean excel file, I’m still super impressed by both <strong>tesseract</strong> and <strong>magick</strong>. This was the first time using them both and we still got pretty far!</p>
+<p>I feel like everything that was said in that quote was realised during this experiment. And even if I had to use some manual data cleaning to get to the final excel file, I’m still super impressed by both <strong>tesseract</strong> and <strong>magick</strong>. This was the first time using them both and we still got pretty far!</p>
 <p>Now it’s time to end this mini-trilogy. Let’s see what I come up with next. It might be another test run with a cool package I want to learn to use or it might be more generally about my learning journey.</p>
 <p>If you’ve read this far, thanks for your time and interest! If you have any questions or comments, don’t hesitate to contact me on LinkedIn (since I still haven’t managed to add the Disqus module for comments, but I’m working on it)!</p>
 </div>

@@ -5,6 +5,15 @@ date: '2021-06-05'
 categories:
   - R
 tags:
+  - magick
+  - OCR
+  - pdf
+  - pdftools
+  - regex
+  - tesseract
+  - tidyverse
+  - unpivotr
+  - writexl
 slug: mining-text-from-pdf-files-part-3-pdf-with-an-image
 lastmod: '2021-06-05T09:11:24+03:00'
 ---
