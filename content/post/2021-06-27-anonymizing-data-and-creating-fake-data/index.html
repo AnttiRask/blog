@@ -1,0 +1,1888 @@
+---
+title: 'Anonymizing Data and Creating Fake Data'
+author: Antti Rask
+date: '2021-06-27'
+slug: anonymizing-data-and-creating-fake-data
+categories:
+  - R
+tags:
+  - regex
+  - tidyverse
+  - writexl
+  - readxl
+  - fakeR
+  - charlatan
+  - rcorpora
+  - ds4psy
+  - fake data
+  - data anonymization
+lastmod: '2021-06-27T12:54:45+03:00'
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="intro" class="section level1">
+<h1>Intro</h1>
+<p>A colleague of mine asked whether I had a way to anonymize distribution data that we can get from Teosto’s web service. Since the data contains a lot of sensitive information, something needs to be done in order to protect the privacy of everyone involved, if we want to demonstrate it to a customer or a stakeholder.</p>
+<p>Also, not that long ago, I happened to see this <a href="https://towardsdatascience.com/how-to-create-fake-data-with-faker-a835e5b7a9d9">blog post</a> by <strong>Khuyen Tran</strong> (<em>Data Science Simplified</em>) about creating fake data in Python. I thought there must be something similar in R and sure enough, I found various different methods to achieve what the blog post talks about.</p>
+<p>I’m assuming you’re using RStudio as your IDE (Integrated Development Environment). I’m sure most of this can be done with using something else as well.</p>
+</div>
+<div id="faker-charlatan-and-rcorpora-in-action" class="section level1">
+<h1><strong>fakeR</strong>, <strong>charlatan</strong> and <strong>rcorpora</strong> in action</h1>
+<p>We’ll be using three main packages. First one is called <a href="https://cran.r-project.org/web/packages/fakeR/vignettes/my-vignette.html">fakeR</a>:</p>
+<blockquote>
+<p>The package allows for simulating datasets of various variable types. This includes datasets containing categorical and quantitative variables as well as datasets of clustered time series observations. The package functions are also useful for maintaining a similar structure of missingness if one is to exist in the existing dataset.</p>
+</blockquote>
+<p>So, despite the similar name - <strong>fakeR</strong> vs. <strong>Faker</strong> - this package isn’t actually for creating fake data. For that, we have <a href="https://github.com/ropensci/charlatan">charlatan</a> that is actually inspired by and borrowing from Python’s <strong>Faker</strong>.</p>
+<p>The third package, <a href="https://github.com/gaborcsardi/rcorpora">rcorpora</a> is a collection of small corpuses. And while they weren’t necessarily created for the purpose that we will be using them, getting a little creative doesn’t hurt. As you will see, some of the solutions might not be suitable for actual production use, but this post works, hopefully, as an inspiration to get started. So, with that, let’s get started!</p>
+<div id="lets-get-ready-part-1" class="section level2">
+<h2>1. Let’s get ready, part 1</h2>
+<p>Before we go any further, I’m going to load the other packages we’ll be needing today (for clarity’s sake, I’m loading the main packages when they are first needed):</p>
+<pre class="r"><code>library(tidyverse)
+# Prerequisite to everything
+
+library(writexl)
+# My go-to package for writing Excel files
+
+library(readxl)
+# My go-to package for reading Excel files</code></pre>
+<p>Before getting to the ‘main course’, let’s start with something familiar (for those of you who have read the <a href="https://youcanbeapirate.com/2021/06/05/mining-text-from-pdf-files-part-3-pdf-with-an-image/">previous blog posts</a> about mining text from PDFs) as a way to introduce you to <a href="https://cran.r-project.org/web/packages/fakeR/vignettes/my-vignette.html">fakeR</a>.</p>
+<p>For that, we need to read in the Excel file that was created last time:
+<img src="images/excel_from_image.jpg" style="width:100.0%" alt="fig. 1 - The raw material" /></p>
+<p>We’ll read in the excel file. Notice that for <strong>fakeR</strong> to work, it’s important that we create a <em>data frame</em> and not a <em>tibble</em> (you can read about the differences between the two in <a href="https://cran.r-project.org/web/packages/tibble/vignettes/tibble.html">here</a>)!</p>
+<pre class="r"><code>excel_from_pdf &lt;- 
+  read_xlsx(&quot;index_files/excel_from_pdf_with_image_2.xlsx&quot;) %&gt;% 
+  as.data.frame() # Because of fakeR, we&#39;ll be using data frames today.</code></pre>
+<p>And since <em>factor</em> isn’t a possible <em>col_type</em> for <em>read_xlsx()</em> to define, let’s go ahead and <em>mutate()</em> the <strong>rank</strong> column instead.</p>
+<pre class="r"><code>excel_from_pdf &lt;- excel_from_pdf %&gt;%
+  mutate(rank = rank %&gt;% as_factor())</code></pre>
+<pre class="r"><code>str(excel_from_pdf)
+## &#39;data.frame&#39;:    18 obs. of  4 variables:
+##  $ artist : chr  &quot;Lil Nas X&quot; &quot;Blind Channel&quot; &quot;SANNI&quot; &quot;Haloo Helsinki!&quot; ...
+##  $ track  : chr  &quot;MONTERO (Call Me By Your Name)&quot; &quot;Dark Side&quot; &quot;Pettäjä&quot; &quot;Piilotan mun kyyneleet&quot; ...
+##  $ rank   : Factor w/ 18 levels &quot;1&quot;,&quot;2&quot;,&quot;3&quot;,&quot;4&quot;,..: 1 2 3 4 5 6 7 8 9 10 ...
+##  $ streams: num  275091 260403 255770 238089 236820 ...</code></pre>
+<pre class="r"><code>excel_from_pdf
+##                       artist
+## 1                  Lil Nas X
+## 2              Blind Channel
+## 3                      SANNI
+## 4            Haloo Helsinki!
+## 5                   Doja Cat
+## 6               Cledos, BEHM
+## 7                Masked Wolf
+## 8                       BEHM
+## 9         Pyhimys, Eino Grön
+## 10                    costee
+## 11      Riton, Nightcrawlers
+## 12 Tion Wayne, Russ Millions
+## 13              Nathan Evans
+## 14                  Dua Lipa
+## 15                      Etta
+## 16                      BEHM
+## 17             Justin Bieber
+## 18               Keko Salata
+##                                                                                          track
+## 1                                                               MONTERO (Call Me By Your Name)
+## 2                                                                                    Dark Side
+## 3                                                                                      Pettäjä
+## 4                                                                       Piilotan mun kyyneleet
+## 5                                                                     Kiss Me More (feat. SZA)
+## 6                                                                               Life (Sun luo)
+## 7                                                                       Astronaut In The Ocean
+## 8                                                                                        Frida
+## 9                                                                            Hyvät hautajaiset
+## 10                                                                 Ne voi liittyy (feat. BIZI)
+## 11                                          Friday (feat. Mufasa &amp; Hypeman) - Dopamine Re-Edit
+## 12 Body (Remix) [feat. ArrDee, E1 (3x3), ZT (3x3), Bugzy Malone, Buni, Fivio Foreign &amp; Darkoo]
+## 13                                         Wellerman - Sea Shanty / 220 KID x Billen Ted Remix
+## 14                                                                   Levitating (feat. DaBaby)
+## 15                                                                                   Prinsessa
+## 16                                                                                   Hei rakas
+## 17                                                      Peaches (feat. Daniel Caesar &amp; Giveon)
+## 18                                                    Kaipaan sua (feat. Boyat &amp; Samuli Heimo)
+##    rank streams
+## 1     1  275091
+## 2     2  260403
+## 3     3  255770
+## 4     4  238089
+## 5     5  236820
+## 6     6  224839
+## 7     7  202630
+## 8     8  200910
+## 9     9  196586
+## 10   10  194852
+## 11   11  186470
+## 12   12  182369
+## 13   13  182353
+## 14   14  180922
+## 15   15  175544
+## 16   16  168578
+## 17   17  167833
+## 18   18  158543</code></pre>
+</div>
+<div id="simulate-data-with-faker" class="section level2">
+<h2>2. Simulate data with <strong>fakeR</strong></h2>
+<p><strong>fakeR</strong> will, in essence, use the existing data to come up with new data. What we want to do, at this point, is to keep the <strong>artist</strong> and <strong>track</strong> data as they are. We just want to scramble the <strong>streams</strong> and then re-create the <strong>rank</strong> data according to the new descending order of streams.</p>
+<p>One interesting argument for <em>simulate_dataset()</em> is <em>stealth.level</em>. Here’s what the documentation has to say about it:</p>
+<blockquote>
+<p>When set to 1 (default), takes into account the covariances between all the unordered factors and the covariances between the numeric and ordered factors. When set to 2, simulates each variable independently. When set to 3, does not take into account any covariances and instead randomly samples from a uniform distribution ranging from the min to the max of the data for each variable.</p>
+</blockquote>
+<p>For this exercise, I decided to go with <em>stealth.level</em> = 3, because I wanted to limit the range of the new values between min and max of the original data.</p>
+<pre class="r"><code>library(fakeR)
+
+sim_excel_from_pdf &lt;- simulate_dataset(excel_from_pdf,
+                                       # With ignore, we can decide which columns will be untouched by the simulation.
+                                       ignore = c(&quot;artist&quot;, 
+                                                  &quot;rank&quot;, 
+                                                  &quot;track&quot;),
+                                       stealth.level = 3) %&gt;%
+    
+    # Let&#39;s arrange the rows according to the streams (descending)
+    arrange(desc(streams)) %&gt;% 
+    
+    # And then add new values to rank, by using row_number()
+    mutate(rank = row_number() %&gt;% as_factor()) %&gt;%
+    
+    # Let&#39;s use select to put the columns back in the original order
+    select(artist, track, rank, streams)
+
+write_xlsx(sim_excel_from_pdf, &quot;index_files/sim_excel.xlsx&quot;)</code></pre>
+<p>Here’s a picture from the simulated data, back in Excel:
+<img src="images/sim_excel.jpg" style="width:100.0%" alt="fig. 2 - The simulated data" /></p>
+<p>By the way, the green triangles on <strong>rank</strong> values come from the fact that excel doesn’t recognise the <em>factor</em> data type, which is good to keep in mind.</p>
+<p>You should also note that that picture is essentially a snapshot of one simulation. The stream amounts will differ from those that you see elsewhere on the post.</p>
+<p>Now, for easier comparison between original and simulated data, here are summaries of <strong>streams</strong> from both:</p>
+<pre class="r"><code># Original
+summary(excel_from_pdf$streams)
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##  158543  181280  195719  204922  233825  275091
+
+# Simulation
+summary(sim_excel_from_pdf$streams)
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##  167765  183538  217177  217129  247184  274408</code></pre>
+<p>As you can see, they quite closely resemble each other’s range etc. (thanks to that argument <em>stealth.level</em> = 3), but are not exactly same. This can be a good thing, if the idea is to show your ‘audience’ what type of values are possible. But if that already gives away too much information, you are probably better off with something even more random.</p>
+<p>Okay, that’s some <strong>fakeR</strong> to start with. Let’s now move to the main exercise. We’ll come back to this package a bit later.</p>
+</div>
+<div id="lets-get-ready-part-2" class="section level2">
+<h2>3. Let’s get ready, part 2</h2>
+<p>I thought it would be interesting for us to use some actual distribution data from <a href="https://www.teosto.fi/en/">Teosto</a>, my employer and the Finnish PRO (Performance Rights Organization). In a nutshell, the data tells what Teosto has payed me in June 2019 for songs that were performed in 2017 and 2018 + some additional information.</p>
+<p>Normally, I wouldn’t be able to show the original data due to its sensitive nature. But, since I happen to be a songwriter myself and a Teosto member, I can share my own data with you. That way, we can go through the process of anonymizing all of the data and you’ll be able to compare the end result with the original.</p>
+<p>Here are some of the columns (there are 25 in total) of the original file:
+<img src="images/Rask_Antti_Lennart_2019-04-16_2019-06-30.jpg" style="width:100.0%" alt="fig. 3 - Original file" /></p>
+<p>I don’t wish to use the original column names, because they are not very R-friendly, so let’s create this vector to replace them with:</p>
+<pre class="r"><code>col_names &lt;- c(&quot;work_number&quot;, 
+               &quot;work_title&quot;, 
+               &quot;distribution_source&quot;, 
+               &quot;distribution_id&quot;, 
+               &quot;distribution_name&quot;, 
+               &quot;distribution_date&quot;,
+               &quot;rightsholder_ipi_number&quot;,
+               &quot;rightsholder_name&quot;,
+               &quot;rightsholder_role&quot;,
+               &quot;rightsholder_share_pct&quot;,
+               &quot;distribution_category_1&quot;,
+               &quot;distribution_category_2&quot;,
+               &quot;distribution_category_3&quot;,
+               &quot;original_name_of_service_or_provider&quot;,
+               &quot;programme_name&quot;,
+               &quot;venue_name&quot;,
+               &quot;performer_name&quot;,
+               &quot;performance_date_start&quot;,
+               &quot;performance_date_end&quot;,
+               &quot;performance_country&quot;,
+               &quot;iswc_code&quot;,
+               &quot;isrc_code&quot;,
+               &quot;type_of_right&quot;,
+               &quot;quantity&quot;,
+               &quot;amount_eur&quot;)</code></pre>
+<p>Next, let’s read in the csv-file that I’ve downloaded from Teosto web service. We’ll be using <em>read_csv()</em> and I’ve defined the column types with the handy <em>col_types</em> argument (where each character represents one column):</p>
+<blockquote>
+<ul>
+<li>c = character</li>
+<li>i = integer</li>
+<li>n = number</li>
+<li>d = double</li>
+<li>l = logical</li>
+<li>f = factor</li>
+<li>D = date</li>
+<li>T = date time</li>
+<li>t = time</li>
+<li>? = guess</li>
+<li>_ or - = skip</li>
+</ul>
+</blockquote>
+<p>Let’s also use that <em>col_names</em> vector from before to define the column names.</p>
+<pre class="r"><code>distribution_csv &lt;- read_csv(
+  &quot;index_files/Rask_Antti_Lennart_2019-04-16_2019-06-30.csv&quot;,
+  col_types = &quot;icfifDicf?fffcccfDDfccfi?&quot;,
+  col_names = col_names,
+  
+  # Skip the first row with the titles on it:
+  skip = 1) %&gt;% 
+  
+  as.data.frame() # Because of fakeR, we&#39;ll be using data frames today.</code></pre>
+<p>This is what the data looks just after having been read in:</p>
+<pre class="r"><code>head(distribution_csv)
+##   work_number               work_title distribution_source distribution_id
+## 1    28195566 Helapääpuukko ja puntari     Teosto domestic             121
+## 2    28588514          Morsiamen kuolo     Teosto domestic             121
+## 3    28195610         Hypi, hypi, hypi     Teosto domestic             121
+## 4    44209143             Velisurmaaja     Teosto domestic             121
+## 5    28587479     Kuninkaan kartanossa     Teosto domestic             121
+## 6    28195610         Hypi, hypi, hypi     Teosto domestic             121
+##   distribution_name distribution_date rightsholder_ipi_number
+## 1       Teosto June        2019-06-13               619070947
+## 2       Teosto June        2019-06-13               619070947
+## 3       Teosto June        2019-06-13               619070947
+## 4       Teosto June        2019-06-13               619070947
+## 5       Teosto June        2019-06-13               619070947
+## 6       Teosto June        2019-06-13               619070947
+##    rightsholder_name rightsholder_role rightsholder_share_pct
+## 1 Antti Lennart Rask          Arranger                    833
+## 2 Antti Lennart Rask          Arranger                    834
+## 3 Antti Lennart Rask          Arranger                    833
+## 4 Antti Lennart Rask          Arranger                    834
+## 5 Antti Lennart Rask          Arranger                    834
+## 6 Antti Lennart Rask          Arranger                    833
+##   distribution_category_1 distribution_category_2 distribution_category_3
+## 1        Background music                  Events                  Events
+## 2        Background music                  Events                  Events
+## 3                  Events        Live and DJ gigs        Live and DJ gigs
+## 4                  Events  Concerts and festivals                   Small
+## 5        Background music                  Events                  Events
+## 6        Background music                  Events                  Events
+##   original_name_of_service_or_provider programme_name           venue_name
+## 1                                 &lt;NA&gt;           &lt;NA&gt; Melt New York Eatery
+## 2                                 &lt;NA&gt;           &lt;NA&gt;                 &lt;NA&gt;
+## 3                                 &lt;NA&gt;           &lt;NA&gt; Melt New York Eatery
+## 4                                 &lt;NA&gt;           &lt;NA&gt;                 &lt;NA&gt;
+## 5                                 &lt;NA&gt;           &lt;NA&gt;                 &lt;NA&gt;
+## 6                                 &lt;NA&gt;           &lt;NA&gt; Melt New York Eatery
+##   performer_name performance_date_start performance_date_end
+## 1  Itä Vs. Länsi             2017-01-01           2017-12-31
+## 2     Tuhkatarha             2018-01-01           2018-12-31
+## 3  Itä Vs. Länsi             2017-08-08           2017-08-08
+## 4     Tuhkatarha             2018-07-01           2018-07-01
+## 5     Tuhkatarha             2018-01-01           2018-12-31
+## 6  Itä Vs. Länsi             2017-01-01           2017-12-31
+##   performance_country   iswc_code isrc_code type_of_right quantity amount_eur
+## 1             Finland T9169861067      &lt;NA&gt;    Performing        1       0,12
+## 2             Finland T9131589281      &lt;NA&gt;    Performing        1       0,36
+## 3             Finland T9169861103      &lt;NA&gt;    Performing        1       0,16
+## 4             Finland        &lt;NA&gt;      &lt;NA&gt;    Performing        1       1,34
+## 5             Finland T9131589270      &lt;NA&gt;    Performing        1       0,24
+## 6             Finland T9169861103      &lt;NA&gt;    Performing        1       0,05</code></pre>
+<p>Lots of columns there. Some of them seem to have the same information throughout:</p>
+<blockquote>
+<ul>
+<li>distribution_source</li>
+<li>distribution_id</li>
+<li>distribution_name</li>
+<li>distribution_date</li>
+<li>original_name_of_service_or_provider</li>
+<li>programme name</li>
+<li>performance_country</li>
+<li>isrc_code</li>
+<li>type_of_right</li>
+<li>quantity</li>
+</ul>
+</blockquote>
+<p>Let’s get rid of them for now with the negative <em>select()</em>, so that it’s easier to focus on the ones that we’ll be taking care of today. We know that if we wish to use them later, we can always find them from the original data frame <em>distribution_csv</em> (although we probably won’t in this exercise).</p>
+<pre class="r"><code>distribution_2_csv &lt;- distribution_csv %&gt;%
+  
+  select(
+    -c(
+      distribution_source, 
+      distribution_id, 
+      distribution_name,
+      distribution_date,
+      original_name_of_service_or_provider, 
+      programme_name, 
+      performance_country, 
+      isrc_code, 
+      type_of_right, 
+      quantity
+      )
+    )</code></pre>
+<p>As you can see, it’s now much easier to wrap your head around it.</p>
+<pre class="r"><code>head(distribution_2_csv)
+##   work_number               work_title rightsholder_ipi_number
+## 1    28195566 Helapääpuukko ja puntari               619070947
+## 2    28588514          Morsiamen kuolo               619070947
+## 3    28195610         Hypi, hypi, hypi               619070947
+## 4    44209143             Velisurmaaja               619070947
+## 5    28587479     Kuninkaan kartanossa               619070947
+## 6    28195610         Hypi, hypi, hypi               619070947
+##    rightsholder_name rightsholder_role rightsholder_share_pct
+## 1 Antti Lennart Rask          Arranger                    833
+## 2 Antti Lennart Rask          Arranger                    834
+## 3 Antti Lennart Rask          Arranger                    833
+## 4 Antti Lennart Rask          Arranger                    834
+## 5 Antti Lennart Rask          Arranger                    834
+## 6 Antti Lennart Rask          Arranger                    833
+##   distribution_category_1 distribution_category_2 distribution_category_3
+## 1        Background music                  Events                  Events
+## 2        Background music                  Events                  Events
+## 3                  Events        Live and DJ gigs        Live and DJ gigs
+## 4                  Events  Concerts and festivals                   Small
+## 5        Background music                  Events                  Events
+## 6        Background music                  Events                  Events
+##             venue_name performer_name performance_date_start
+## 1 Melt New York Eatery  Itä Vs. Länsi             2017-01-01
+## 2                 &lt;NA&gt;     Tuhkatarha             2018-01-01
+## 3 Melt New York Eatery  Itä Vs. Länsi             2017-08-08
+## 4                 &lt;NA&gt;     Tuhkatarha             2018-07-01
+## 5                 &lt;NA&gt;     Tuhkatarha             2018-01-01
+## 6 Melt New York Eatery  Itä Vs. Länsi             2017-01-01
+##   performance_date_end   iswc_code amount_eur
+## 1           2017-12-31 T9169861067       0,12
+## 2           2018-12-31 T9131589281       0,36
+## 3           2017-08-08 T9169861103       0,16
+## 4           2018-07-01        &lt;NA&gt;       1,34
+## 5           2018-12-31 T9131589270       0,24
+## 6           2017-12-31 T9169861103       0,05</code></pre>
+<p>Once that’s done, we can concentrate on the first anonymization.</p>
+</div>
+<div id="create-fake-people-names-with-charlatan" class="section level2">
+<h2>4. Create fake people names with <strong>charlatan</strong></h2>
+<p>You could use <a href="https://github.com/ropensci/charlatan">charlatan</a> to create fake data for these (and more to come):</p>
+<blockquote>
+<ul>
+<li>person names</li>
+<li>jobs</li>
+<li>phone numbers</li>
+<li>colors: names, hex, rgb</li>
+<li>credit cards</li>
+<li>DOIs</li>
+<li>numbers in range and from distributions</li>
+<li>gene sequences</li>
+<li>geographic coordinates</li>
+<li>emails</li>
+<li>URIs, URLs, and their parts</li>
+<li>IP addresses</li>
+</ul>
+</blockquote>
+<p>For today’s exercise, we’ll only be creating person names, though. We first need to create an <em>environment</em> with <em>fraudster()</em> (you can read more about <em>environments</em> <a href="http://adv-r.had.co.nz/Environments.html">here</a>) and then use <em>mutate()</em> to replace the original <strong>rightsholder_name</strong> (my name, that is) with a fake one.</p>
+<pre class="r"><code>library(charlatan)
+
+charlatan &lt;- fraudster() # This creates the environment to be used later
+
+distribution_3_csv &lt;- distribution_2_csv %&gt;%
+  
+  mutate(rightsholder_name = charlatan$name())</code></pre>
+<pre class="r"><code># Original
+head(distribution_csv$rightsholder_name)
+## [1] &quot;Antti Lennart Rask&quot; &quot;Antti Lennart Rask&quot; &quot;Antti Lennart Rask&quot;
+## [4] &quot;Antti Lennart Rask&quot; &quot;Antti Lennart Rask&quot; &quot;Antti Lennart Rask&quot;
+
+# Fake
+head(distribution_3_csv$rightsholder_name)
+## [1] &quot;Brisa Bradtke-Eichmann&quot; &quot;Brisa Bradtke-Eichmann&quot; &quot;Brisa Bradtke-Eichmann&quot;
+## [4] &quot;Brisa Bradtke-Eichmann&quot; &quot;Brisa Bradtke-Eichmann&quot; &quot;Brisa Bradtke-Eichmann&quot;</code></pre>
+<p>Nice! Such an easy way to create fake names. In the follow-up blog post we will create a localized fake name generator (for Finnish names) as a possible replacement for this one.</p>
+</div>
+<div id="using-tidyverse-and-base-r-to-create-some-fake-numbers" class="section level2">
+<h2>5. Using <strong>tidyverse</strong> and <strong>base R</strong> to create some fake numbers</h2>
+<p>Part of the anonymizing can be done with the everyday tools.</p>
+<p>It’s no surprise that I’m a big fan of <a href="https://www.tidyverse.org/">tidyverse</a>. If you are studying R, you are probably familiar with it, but if not, it’s a collection of packages that make it easier to clean and analyse data in R.</p>
+<p>The core packages (as of <strong>tidyverse</strong> 1.3.0). Click the name for a cheat sheet:</p>
+<blockquote>
+<ul>
+<li><a href="https://github.com/rstudio/cheatsheets/raw/master/data-transformation.pdf">dplyr</a> - for data manipulation</li>
+<li><a href="https://github.com/rstudio/cheatsheets/raw/master/factors.pdf">forcats</a> - for working with factors</li>
+<li><a href="https://github.com/rstudio/cheatsheets/raw/master/data-visualization-2.1.pdf">ggplot2</a> - for creating graphics</li>
+<li><a href="https://github.com/rstudio/cheatsheets/raw/master/purrr.pdf">purrr</a> - for working with functions and vectors</li>
+<li><a href="https://github.com/rstudio/cheatsheets/raw/master/data-import.pdf">readr/tidyr</a> - for reading rectangular data/for tidying data</li>
+<li><a href="https://github.com/rstudio/cheatsheets/raw/master/strings.pdf">stringr</a> - for working with strings</li>
+<li>tibble - for replacing the data frame</li>
+</ul>
+</blockquote>
+<p>In this exercise we have been and will be using mostly <strong>dplyr</strong> and <strong>stringr</strong>, but let’s not forget that the base R has some very useful functions, like <em>sample()</em>.</p>
+<p>First, let’s <em>sample()</em> the <strong>rightsholder_ipi_number</strong> (IPI = Interested Parties Information). We would like the numbers to resemble the real numbers and that is why we use <em>min()</em> and <em>max()</em> of the original values to give a believable range to sample from.</p>
+<p>Let’s then do the same for <strong>work_number</strong>. The next two things we could do in a separate <em>mutate()</em>, but while we’re at it, let’s remove the leading “T” from <strong>iswc_code</strong> (ISWC = International Standard musical Work Code), so that it can be handled as a numeric value in the next step of the exercise.</p>
+<p>As a bonus, let’s correct the <strong>rightsholder_share_pct</strong>, because it went a bit wonky during the import.</p>
+<pre class="r"><code>distribution_4_csv &lt;- distribution_3_csv %&gt;%
+  
+  mutate(
+    
+    rightsholder_ipi_number = sample(
+      min(rightsholder_ipi_number):max(rightsholder_ipi_number),
+      size = nrow(.),
+      replace = FALSE),
+    
+    work_number = sample(
+      min(work_number):max(work_number),
+      size = nrow(.), 
+      replace = FALSE),
+    
+    # With a little bit of regex, we&#39;ll remove the leading &quot;T&quot; from ISWC code, so that we can later work with it as a numeric value.
+    iswc_code = str_remove_all(iswc_code, &quot;^T&quot;),
+    
+    # A simple division will give us a correct rightsholder share percentage. 8,33 became 833 and 25,0 became 250 etc. in the import, so we need to take that into consideration in this mutate().
+    rightsholder_share_pct = ifelse(
+      rightsholder_share_pct == 250,
+      rightsholder_share_pct / 10,
+      rightsholder_share_pct / 100),
+    
+    rightsholder_share_pct = as.character(
+      str_replace_all(
+        rightsholder_share_pct,
+        &quot;\\.&quot;,
+        &quot;\\,&quot;))
+    )</code></pre>
+<p>We can now also pick <strong>iswc_code</strong> as a separate vector to be used later for finding the <em>min</em> and <em>max</em> values for it.</p>
+<pre class="r"><code>iswc_code &lt;- distribution_4_csv$iswc_code</code></pre>
+<p>And this is what the latest changes look like, compared to the original:</p>
+<pre class="r"><code># Original
+head(distribution_csv) %&gt;% 
+  
+  select(
+    rightsholder_share_pct,
+    rightsholder_ipi_number,
+    work_number,
+    iswc_code
+  )
+##   rightsholder_share_pct rightsholder_ipi_number work_number   iswc_code
+## 1                    833               619070947    28195566 T9169861067
+## 2                    834               619070947    28588514 T9131589281
+## 3                    833               619070947    28195610 T9169861103
+## 4                    834               619070947    44209143        &lt;NA&gt;
+## 5                    834               619070947    28587479 T9131589270
+## 6                    833               619070947    28195610 T9169861103</code></pre>
+<pre class="r"><code># Fake and/or corrected
+head(distribution_4_csv) %&gt;% 
+  
+  select(
+    rightsholder_share_pct,
+    rightsholder_ipi_number,
+    work_number,
+    iswc_code
+    )
+##   rightsholder_share_pct rightsholder_ipi_number work_number  iswc_code
+## 1                   8,33               370920627    40281254 9169861067
+## 2                   8,34               597137869    34235492 9131589281
+## 3                   8,33                69762901    32917123 9169861103
+## 4                   8,34               239954359    44167446       &lt;NA&gt;
+## 5                   8,34               445863699    41563174 9131589270
+## 6                   8,33               174888075    42788497 9169861103</code></pre>
+<p>Now, let’s get to randomizing the <strong>iswc_code</strong>.</p>
+<p>First, we’ll use <em>str_replace()</em> from <strong>stringr</strong> inside a <em>mutate()</em> to replace all the non-empty cells (that’s what the bit of regex "^(?!\\s*$).+" is for) with a new sampled value. Again we’re using the <em>min</em> and <em>max</em> of the original values to make the new values feel more ‘real’.</p>
+<pre class="r"><code>distribution_5_csv &lt;- distribution_4_csv %&gt;%
+  
+  mutate(
+    iswc_code = 
+      str_replace(
+        iswc_code,
+        &quot;^(?!\\s*$).+&quot;,
+        replacement = as.character(
+          sample(
+            min(iswc_code, na.rm = TRUE):max(iswc_code, na.rm = TRUE),
+            size = nrow(.),
+            replace = FALSE)))
+  )</code></pre>
+<p>Then we need to return the leading “T” to <strong>iswc_code</strong> to match the original. Now, if we only used <em>str_glue()</em> (again, from the <strong>stringr</strong> package), the cells containing <em>NA</em> would also get the leading “T”. And we don’t want that.</p>
+<p>Enter <em>ifelse()</em>. If the cell contains <em>NA</em>, replace it with <em>NA</em> (so basically, do nothing). Otherwise add the leading “T” to the cell.</p>
+<pre class="r"><code>distribution_5_csv$iswc_code &lt;- ifelse(
+  is.na(distribution_5_csv$iswc_code),
+  NA,
+  str_glue(&quot;T{distribution_5_csv$iswc_code}&quot;)
+  )</code></pre>
+<p>We can now compare the sampled ISWC codes with the original ones. This way, we have retained the ratio of <em>NAs</em> of the original.</p>
+<pre class="r"><code># Original
+head(distribution_csv$iswc_code)
+## [1] &quot;T9169861067&quot; &quot;T9131589281&quot; &quot;T9169861103&quot; NA            &quot;T9131589270&quot;
+## [6] &quot;T9169861103&quot;</code></pre>
+<pre class="r"><code># Fake
+head(distribution_5_csv$iswc_code)
+## [1] &quot;T9198288787&quot; &quot;T9147055834&quot; &quot;T9199362119&quot; NA            &quot;T9143534917&quot;
+## [6] &quot;T9146936323&quot;</code></pre>
+<p>Looks convincing!</p>
+<p>If we wanted, we could fade it by skipping the <em>str_replace()</em> altogether and using the same methods that we did for IPI and work numbers. Then we would have no need for the <em>ifelse()</em> either, just the <em>str_glue()</em> part would do.</p>
+</div>
+<div id="create-fake-work-titles-performer-and-venue-names-with-rcorpora" class="section level2">
+<h2>6. Create fake work titles, performer and venue names with <strong>rcorpora</strong></h2>
+<p>To get some more fake names, let’s get a bit more creative with <a href="https://github.com/gaborcsardi/rcorpora">rcorpora</a>. Let’s first see a list of the available small corpuses.</p>
+<pre class="r"><code>library(rcorpora)
+
+# Just to see what all is out there:
+corpora()
+##   [1] &quot;animals/birds_antarctica&quot;                                       
+##   [2] &quot;animals/birds_north_america&quot;                                    
+##   [3] &quot;animals/cats&quot;                                                   
+##   [4] &quot;animals/collateral_adjectives&quot;                                  
+##   [5] &quot;animals/common&quot;                                                 
+##   [6] &quot;animals/dinosaurs&quot;                                              
+##   [7] &quot;animals/dog_names&quot;                                              
+##   [8] &quot;animals/dogs&quot;                                                   
+##   [9] &quot;animals/donkeys&quot;                                                
+##  [10] &quot;animals/horses&quot;                                                 
+##  [11] &quot;animals/ponies&quot;                                                 
+##  [12] &quot;archetypes/artifact&quot;                                            
+##  [13] &quot;archetypes/character&quot;                                           
+##  [14] &quot;archetypes/event&quot;                                               
+##  [15] &quot;archetypes/setting&quot;                                             
+##  [16] &quot;architecture/passages&quot;                                          
+##  [17] &quot;architecture/rooms&quot;                                             
+##  [18] &quot;art/isms&quot;                                                       
+##  [19] &quot;colors/crayola&quot;                                                 
+##  [20] &quot;colors/dulux&quot;                                                   
+##  [21] &quot;colors/google_material_colors&quot;                                  
+##  [22] &quot;colors/paints&quot;                                                  
+##  [23] &quot;colors/palettes&quot;                                                
+##  [24] &quot;colors/web_colors&quot;                                              
+##  [25] &quot;colors/xkcd&quot;                                                    
+##  [26] &quot;corporations/cars&quot;                                              
+##  [27] &quot;corporations/djia&quot;                                              
+##  [28] &quot;corporations/fortune500&quot;                                        
+##  [29] &quot;corporations/industries&quot;                                        
+##  [30] &quot;corporations/nasdaq&quot;                                            
+##  [31] &quot;corporations/newspapers&quot;                                        
+##  [32] &quot;divination/tarot_interpretations&quot;                               
+##  [33] &quot;divination/zodiac&quot;                                              
+##  [34] &quot;film-tv/game-of-thrones-houses&quot;                                 
+##  [35] &quot;film-tv/iab_categories&quot;                                         
+##  [36] &quot;film-tv/netflix-categories&quot;                                     
+##  [37] &quot;film-tv/popular-movies&quot;                                         
+##  [38] &quot;film-tv/tv_shows&quot;                                               
+##  [39] &quot;foods/apple_cultivars&quot;                                          
+##  [40] &quot;foods/bad_beers&quot;                                                
+##  [41] &quot;foods/beer_categories&quot;                                          
+##  [42] &quot;foods/beer_styles&quot;                                              
+##  [43] &quot;foods/breads_and_pastries&quot;                                      
+##  [44] &quot;foods/combine&quot;                                                  
+##  [45] &quot;foods/condiments&quot;                                               
+##  [46] &quot;foods/curds&quot;                                                    
+##  [47] &quot;foods/fruits&quot;                                                   
+##  [48] &quot;foods/herbs_n_spices&quot;                                           
+##  [49] &quot;foods/hot_peppers&quot;                                              
+##  [50] &quot;foods/iba_cocktails&quot;                                            
+##  [51] &quot;foods/menuItems&quot;                                                
+##  [52] &quot;foods/pizzaToppings&quot;                                            
+##  [53] &quot;foods/sandwiches&quot;                                               
+##  [54] &quot;foods/sausages&quot;                                                 
+##  [55] &quot;foods/scotch_whiskey&quot;                                           
+##  [56] &quot;foods/tea&quot;                                                      
+##  [57] &quot;foods/vegetable_cooking_times&quot;                                  
+##  [58] &quot;foods/vegetables&quot;                                               
+##  [59] &quot;foods/wine_descriptions&quot;                                        
+##  [60] &quot;games/bannedGames/argentina/bannedList&quot;                         
+##  [61] &quot;games/bannedGames/brazil/bannedList&quot;                            
+##  [62] &quot;games/bannedGames/china/bannedList&quot;                             
+##  [63] &quot;games/bannedGames/denmark/bannedList&quot;                           
+##  [64] &quot;games/cluedo&quot;                                                   
+##  [65] &quot;games/dark_souls_iii_messages&quot;                                  
+##  [66] &quot;games/jeopardy_questions&quot;                                       
+##  [67] &quot;games/pokemon&quot;                                                  
+##  [68] &quot;games/scrabble&quot;                                                 
+##  [69] &quot;games/street_fighter_ii&quot;                                        
+##  [70] &quot;games/trivial_pursuit&quot;                                          
+##  [71] &quot;games/wrestling_moves&quot;                                          
+##  [72] &quot;games/zelda&quot;                                                    
+##  [73] &quot;geography/canada_provinces_and_territories&quot;                     
+##  [74] &quot;geography/canadian_municipalities&quot;                              
+##  [75] &quot;geography/countries&quot;                                            
+##  [76] &quot;geography/countries_with_capitals&quot;                              
+##  [77] &quot;geography/english_towns_cities&quot;                                 
+##  [78] &quot;geography/japanese_prefectures&quot;                                 
+##  [79] &quot;geography/london_underground_stations&quot;                          
+##  [80] &quot;geography/nationalities&quot;                                        
+##  [81] &quot;geography/norwegian_cities&quot;                                     
+##  [82] &quot;geography/nyc_neighborhood_zips&quot;                                
+##  [83] &quot;geography/oceans&quot;                                               
+##  [84] &quot;geography/rivers&quot;                                               
+##  [85] &quot;geography/sf_neighborhoods&quot;                                     
+##  [86] &quot;geography/us_airport_codes&quot;                                     
+##  [87] &quot;geography/us_cities&quot;                                            
+##  [88] &quot;geography/us_counties&quot;                                          
+##  [89] &quot;geography/us_metropolitan_areas&quot;                                
+##  [90] &quot;geography/us_state_capitals&quot;                                    
+##  [91] &quot;geography/venues&quot;                                               
+##  [92] &quot;geography/winds&quot;                                                
+##  [93] &quot;governments/mass-surveillance-project-names&quot;                    
+##  [94] &quot;governments/nsa_projects&quot;                                       
+##  [95] &quot;governments/uk_political_parties&quot;                               
+##  [96] &quot;governments/us_federal_agencies&quot;                                
+##  [97] &quot;governments/us_mil_operations&quot;                                  
+##  [98] &quot;humans/2016_us_presidential_candidates&quot;                         
+##  [99] &quot;humans/atus_activities&quot;                                         
+## [100] &quot;humans/authors&quot;                                                 
+## [101] &quot;humans/bodyParts&quot;                                               
+## [102] &quot;humans/britishActors&quot;                                           
+## [103] &quot;humans/celebrities&quot;                                             
+## [104] &quot;humans/descriptions&quot;                                            
+## [105] &quot;humans/englishHonorifics&quot;                                       
+## [106] &quot;humans/famousDuos&quot;                                              
+## [107] &quot;humans/firstNames&quot;                                              
+## [108] &quot;humans/lastNames&quot;                                               
+## [109] &quot;humans/moods&quot;                                                   
+## [110] &quot;humans/norwayFirstNamesBoys&quot;                                    
+## [111] &quot;humans/norwayFirstNamesGirls&quot;                                   
+## [112] &quot;humans/norwayLastNames&quot;                                         
+## [113] &quot;humans/occupations&quot;                                             
+## [114] &quot;humans/prefixes&quot;                                                
+## [115] &quot;humans/richpeople&quot;                                              
+## [116] &quot;humans/scientists&quot;                                              
+## [117] &quot;humans/spanishFirstNames&quot;                                       
+## [118] &quot;humans/spanishLastNames&quot;                                        
+## [119] &quot;humans/spinalTapDrummers&quot;                                       
+## [120] &quot;humans/suffixes&quot;                                                
+## [121] &quot;humans/thirdPersonPronouns&quot;                                     
+## [122] &quot;humans/tolkienCharacterNames&quot;                                   
+## [123] &quot;humans/us_presidents&quot;                                           
+## [124] &quot;humans/wrestlers&quot;                                               
+## [125] &quot;instructions/laundry_care&quot;                                      
+## [126] &quot;materials/abridged-body-fluids&quot;                                 
+## [127] &quot;materials/building-materials&quot;                                   
+## [128] &quot;materials/carbon-allotropes&quot;                                    
+## [129] &quot;materials/decorative-stones&quot;                                    
+## [130] &quot;materials/fabrics&quot;                                              
+## [131] &quot;materials/fibers&quot;                                               
+## [132] &quot;materials/gemstones&quot;                                            
+## [133] &quot;materials/layperson-metals&quot;                                     
+## [134] &quot;materials/metals&quot;                                               
+## [135] &quot;materials/natural-materials&quot;                                    
+## [136] &quot;materials/packaging&quot;                                            
+## [137] &quot;materials/plastic-brands&quot;                                       
+## [138] &quot;materials/sculpture-materials&quot;                                  
+## [139] &quot;materials/technical-fabrics&quot;                                    
+## [140] &quot;mathematics/fibonnaciSequence&quot;                                  
+## [141] &quot;mathematics/primes&quot;                                             
+## [142] &quot;mathematics/primes_binary&quot;                                      
+## [143] &quot;mathematics/trigonometry&quot;                                       
+## [144] &quot;medicine/diagnoses&quot;                                             
+## [145] &quot;medicine/drugNameStems&quot;                                         
+## [146] &quot;medicine/drugs&quot;                                                 
+## [147] &quot;medicine/hospitals&quot;                                             
+## [148] &quot;music/a_list_of_guitar_manufacturers&quot;                           
+## [149] &quot;music/bands_that_have_opened_for_tool&quot;                          
+## [150] &quot;music/female_classical_guitarists&quot;                              
+## [151] &quot;music/genres&quot;                                                   
+## [152] &quot;music/hamilton_musical_obcrecording_actors_characters&quot;          
+## [153] &quot;music/instruments&quot;                                              
+## [154] &quot;music/mtv_day_one&quot;                                              
+## [155] &quot;music/rock_hall_of_fame&quot;                                        
+## [156] &quot;music/xxl_freshman&quot;                                             
+## [157] &quot;mythology/greek_gods&quot;                                           
+## [158] &quot;mythology/greek_monsters&quot;                                       
+## [159] &quot;mythology/greek_myths_master&quot;                                   
+## [160] &quot;mythology/greek_titans&quot;                                         
+## [161] &quot;mythology/hebrew_god&quot;                                           
+## [162] &quot;mythology/lovecraft&quot;                                            
+## [163] &quot;mythology/monsters&quot;                                             
+## [164] &quot;mythology/norse_gods&quot;                                           
+## [165] &quot;objects/clothing&quot;                                               
+## [166] &quot;objects/corpora_winners&quot;                                        
+## [167] &quot;objects/objects&quot;                                                
+## [168] &quot;plants/cannabis&quot;                                                
+## [169] &quot;plants/flowers&quot;                                                 
+## [170] &quot;plants/plants&quot;                                                  
+## [171] &quot;religion/christian_saints&quot;                                      
+## [172] &quot;religion/fictional_religions&quot;                                   
+## [173] &quot;religion/parody_religions&quot;                                      
+## [174] &quot;religion/religions&quot;                                             
+## [175] &quot;science/elements&quot;                                               
+## [176] &quot;science/hail_size&quot;                                              
+## [177] &quot;science/minor_planets&quot;                                          
+## [178] &quot;science/planets&quot;                                                
+## [179] &quot;science/pregnancy&quot;                                              
+## [180] &quot;science/toxic_chemicals&quot;                                        
+## [181] &quot;science/weather_conditions&quot;                                     
+## [182] &quot;societies_and_groups/animal_welfare&quot;                            
+## [183] &quot;societies_and_groups/designated_terrorist_groups/australia&quot;     
+## [184] &quot;societies_and_groups/designated_terrorist_groups/canada&quot;        
+## [185] &quot;societies_and_groups/designated_terrorist_groups/china&quot;         
+## [186] &quot;societies_and_groups/designated_terrorist_groups/egypt&quot;         
+## [187] &quot;societies_and_groups/designated_terrorist_groups/european_union&quot;
+## [188] &quot;societies_and_groups/designated_terrorist_groups/india&quot;         
+## [189] &quot;societies_and_groups/designated_terrorist_groups/iran&quot;          
+## [190] &quot;societies_and_groups/designated_terrorist_groups/israel&quot;        
+## [191] &quot;societies_and_groups/designated_terrorist_groups/kazakhstan&quot;    
+## [192] &quot;societies_and_groups/designated_terrorist_groups/russia&quot;        
+## [193] &quot;societies_and_groups/designated_terrorist_groups/saudi_arabia&quot;  
+## [194] &quot;societies_and_groups/designated_terrorist_groups/tunisia&quot;       
+## [195] &quot;societies_and_groups/designated_terrorist_groups/turkey&quot;        
+## [196] &quot;societies_and_groups/designated_terrorist_groups/uae&quot;           
+## [197] &quot;societies_and_groups/designated_terrorist_groups/ukraine&quot;       
+## [198] &quot;societies_and_groups/designated_terrorist_groups/united_kingdom&quot;
+## [199] &quot;societies_and_groups/designated_terrorist_groups/united_nations&quot;
+## [200] &quot;societies_and_groups/designated_terrorist_groups/united_states&quot; 
+## [201] &quot;societies_and_groups/fraternities/coeducational_fraternities&quot;   
+## [202] &quot;societies_and_groups/fraternities/defunct&quot;                      
+## [203] &quot;societies_and_groups/fraternities/fraternities&quot;                 
+## [204] &quot;societies_and_groups/fraternities/professional&quot;                 
+## [205] &quot;societies_and_groups/fraternities/service&quot;                      
+## [206] &quot;societies_and_groups/fraternities/sororities&quot;                   
+## [207] &quot;societies_and_groups/semi_secret&quot;                               
+## [208] &quot;sports/football/epl_teams&quot;                                      
+## [209] &quot;sports/football/laliga_teams&quot;                                   
+## [210] &quot;sports/football/serieA&quot;                                         
+## [211] &quot;sports/mlb_teams&quot;                                               
+## [212] &quot;sports/nba_mvps&quot;                                                
+## [213] &quot;sports/nba_teams&quot;                                               
+## [214] &quot;sports/nfl_teams&quot;                                               
+## [215] &quot;sports/nhl_teams&quot;                                               
+## [216] &quot;sports/olympics&quot;                                                
+## [217] &quot;technology/appliances&quot;                                          
+## [218] &quot;technology/computer_sciences&quot;                                   
+## [219] &quot;technology/fireworks&quot;                                           
+## [220] &quot;technology/guns_n_rifles&quot;                                       
+## [221] &quot;technology/knots&quot;                                               
+## [222] &quot;technology/lisp&quot;                                                
+## [223] &quot;technology/new_technologies&quot;                                    
+## [224] &quot;technology/photo_sharing_websites&quot;                              
+## [225] &quot;technology/programming_languages&quot;                               
+## [226] &quot;technology/social_networking_websites&quot;                          
+## [227] &quot;technology/video_hosting_websites&quot;                              
+## [228] &quot;transportation/commercial-aircraft&quot;                             
+## [229] &quot;travel/lcc&quot;                                                     
+## [230] &quot;words/adjs&quot;                                                     
+## [231] &quot;words/adverbs&quot;                                                  
+## [232] &quot;words/closed_pairs&quot;                                             
+## [233] &quot;words/common&quot;                                                   
+## [234] &quot;words/compounds&quot;                                                
+## [235] &quot;words/crash_blossoms&quot;                                           
+## [236] &quot;words/eggcorns&quot;                                                 
+## [237] &quot;words/emoji/cute_kaomoji&quot;                                       
+## [238] &quot;words/emoji/emoji&quot;                                              
+## [239] &quot;words/encouraging_words&quot;                                        
+## [240] &quot;words/ergative_verbs&quot;                                           
+## [241] &quot;words/expletives&quot;                                               
+## [242] &quot;words/harvard_sentences&quot;                                        
+## [243] &quot;words/infinitive_verbs&quot;                                         
+## [244] &quot;words/interjections&quot;                                            
+## [245] &quot;words/literature/infinitejest&quot;                                  
+## [246] &quot;words/literature/lovecraft_words&quot;                               
+## [247] &quot;words/literature/mr_men_little_miss&quot;                            
+## [248] &quot;words/literature/shakespeare_phrases&quot;                           
+## [249] &quot;words/literature/shakespeare_sonnets&quot;                           
+## [250] &quot;words/literature/shakespeare_words&quot;                             
+## [251] &quot;words/literature/technology_quotes&quot;                             
+## [252] &quot;words/nouns&quot;                                                    
+## [253] &quot;words/oprah_quotes&quot;                                             
+## [254] &quot;words/personal_nouns&quot;                                           
+## [255] &quot;words/personal_pronouns&quot;                                        
+## [256] &quot;words/possessive_pronouns&quot;                                      
+## [257] &quot;words/prefix_root_suffix&quot;                                       
+## [258] &quot;words/prepositions&quot;                                             
+## [259] &quot;words/proverbs&quot;                                                 
+## [260] &quot;words/resume_action_words&quot;                                      
+## [261] &quot;words/rhymeless_words&quot;                                          
+## [262] &quot;words/spells&quot;                                                   
+## [263] &quot;words/state_verbs&quot;                                              
+## [264] &quot;words/states_of_drunkenness&quot;                                    
+## [265] &quot;words/stopwords/ar&quot;                                             
+## [266] &quot;words/stopwords/bg&quot;                                             
+## [267] &quot;words/stopwords/cs&quot;                                             
+## [268] &quot;words/stopwords/da&quot;                                             
+## [269] &quot;words/stopwords/de&quot;                                             
+## [270] &quot;words/stopwords/en&quot;                                             
+## [271] &quot;words/stopwords/es&quot;                                             
+## [272] &quot;words/stopwords/fi&quot;                                             
+## [273] &quot;words/stopwords/fr&quot;                                             
+## [274] &quot;words/stopwords/gr&quot;                                             
+## [275] &quot;words/stopwords/it&quot;                                             
+## [276] &quot;words/stopwords/jp&quot;                                             
+## [277] &quot;words/stopwords/lv&quot;                                             
+## [278] &quot;words/stopwords/nl&quot;                                             
+## [279] &quot;words/stopwords/no&quot;                                             
+## [280] &quot;words/stopwords/pl&quot;                                             
+## [281] &quot;words/stopwords/pt&quot;                                             
+## [282] &quot;words/stopwords/ru&quot;                                             
+## [283] &quot;words/stopwords/sk&quot;                                             
+## [284] &quot;words/stopwords/sv&quot;                                             
+## [285] &quot;words/stopwords/tr&quot;                                             
+## [286] &quot;words/strange_words&quot;                                            
+## [287] &quot;words/units_of_time&quot;                                            
+## [288] &quot;words/us_president_quotes&quot;                                      
+## [289] &quot;words/verbs&quot;                                                    
+## [290] &quot;words/verbs_with_conjugations&quot;                                  
+## [291] &quot;words/word_clues/clues_five&quot;                                    
+## [292] &quot;words/word_clues/clues_four&quot;                                    
+## [293] &quot;words/word_clues/clues_six&quot;</code></pre>
+<p>For fake work titles, let’s use the following:</p>
+<blockquote>
+<ul>
+<li>[37] “film-tv/popular-movies”</li>
+<li>[38] “film-tv/tv_shows”</li>
+<li>[67] “games/pokemon”</li>
+<li>[79] “geography/london_underground_stations”</li>
+<li>[154] “music/mtv_day_one”</li>
+</ul>
+</blockquote>
+<p>And this is how we do it:</p>
+<pre class="r"><code># We&#39;ll first create a list from a chosen corpus.
+popular_movies &lt;- corpora(&quot;film-tv/popular-movies&quot;)
+
+# Then we&#39;ll pluck just the contents (no need for the description here).
+popular_movies &lt;- popular_movies$`popular-movies`
+
+# For the movies one we need to do some cleaning, since the names have the release year included. For example &quot;The Godfather (1972)&quot;. For that we use a bit of regex and str_trim() from stringr.
+popular_movies_cln &lt;- str_extract(popular_movies, &quot;[^(]*&quot;) %&gt;% str_trim()
+
+# Repeat with the rest of the corpuses.
+tv_shows &lt;- corpora(&quot;film-tv/tv_shows&quot;)
+tv_shows &lt;- tv_shows$tv_shows
+
+pokemon &lt;- corpora(&quot;games/pokemon&quot;)
+pokemon &lt;- pokemon$pokemon$name
+
+london_underground &lt;- corpora(&quot;geography/london_underground_stations&quot;)
+london_underground &lt;- london_underground$stations$name
+
+mtv_day1 &lt;- corpora(&quot;music/mtv_day_one&quot;)
+mtv_day1 &lt;- mtv_day1$videos$song
+
+# Let&#39;s put them all together as one corpus to draw names from.
+corpus &lt;- c(
+  london_underground,
+  mtv_day1, 
+  pokemon, 
+  popular_movies_cln, 
+  tv_shows
+  )</code></pre>
+<p>We can check that the corpus works. Some of the names are pretty random, I know, but wasn’t that exactly what we were after! If you’re a musician, feel free to use these as inspiration for your next hit song.</p>
+<pre class="r"><code>sample(corpus, 10)
+##  [1] &quot;E.T. the Extra-Terrestrial&quot; &quot;Turn It On Again&quot;          
+##  [3] &quot;Weavile&quot;                    &quot;Terra Nova&quot;                
+##  [5] &quot;Kaiketsu Zorro&quot;             &quot;Edgware Road&quot;              
+##  [7] &quot;Wonderfalls&quot;                &quot;Tufnell Park&quot;              
+##  [9] &quot;Platoon&quot;                    &quot;Family Ties&quot;</code></pre>
+<p>We also need some good performer names. I think it’s pretty hilarious that there is a corpus consisting of opening bands for the progressive metal band Tool. I couldn’t resist using that one!</p>
+<pre class="r"><code># Tool opening bands to replace performer_names.
+tool_opening_bands &lt;- corpora(&quot;music/bands_that_have_opened_for_tool&quot;)
+tool_opening_bands &lt;- tool_opening_bands$bands
+
+# Removing Isis from the list, just because...
+tool_opening_bands &lt;- tool_opening_bands[-9] </code></pre>
+<p>Then we need some venue names. I know that the <em>venues</em> corpus isn’t exactly the kind of thing that we mean by venues when talking about music venues, but what the heck. This is fake data we’re creating, so why not use them anyway.</p>
+<pre class="r"><code># Venues to replace venue_names.
+venues &lt;- corpora(&quot;geography/venues&quot;)
+venues &lt;- venues$categories$name %&gt;% 
+  
+  # Stringr&#39;s str_to_title() to give a title capitalization (every first letter is capitalized) to the venue names.  
+  str_to_title()</code></pre>
+<p>It’s time to put all these corpuses into action. Nothing new here, really.</p>
+<pre class="r"><code>distribution_6_csv &lt;- distribution_5_csv %&gt;%
+  
+  mutate(
+    
+    work_title = sample(
+      corpus, 
+      size = nrow(.),
+      replace = FALSE),
+    
+    performer_name = sample(
+      tool_opening_bands,
+      size = nrow(.),
+      # This means that the same name can be used more than once. It is needed, because the corpus is shorter than the data frame has rows.
+      replace = TRUE), 
+    
+    venue_name = str_replace(
+      venue_name,
+      &quot;^(?!\\s*$).+&quot;,
+      replacement = sample(
+        venues, 
+        size = nrow(.),
+        # This means that the same name can be used more than once. It is needed, because the corpus is shorter than the data frame has rows.
+        replace = TRUE)) 
+    
+  ) %&gt;% 
+  
+  as.data.frame() # Because of fakeR, we&#39;ll be using data frames today.</code></pre>
+<p>We can, once again compare the original with our new fake data:</p>
+<pre class="r"><code># Original
+head(distribution_csv) %&gt;% 
+  select(
+    work_title,
+    performer_name,
+    venue_name
+  )
+##                 work_title performer_name           venue_name
+## 1 Helapääpuukko ja puntari  Itä Vs. Länsi Melt New York Eatery
+## 2          Morsiamen kuolo     Tuhkatarha                 &lt;NA&gt;
+## 3         Hypi, hypi, hypi  Itä Vs. Länsi Melt New York Eatery
+## 4             Velisurmaaja     Tuhkatarha                 &lt;NA&gt;
+## 5     Kuninkaan kartanossa     Tuhkatarha                 &lt;NA&gt;
+## 6         Hypi, hypi, hypi  Itä Vs. Länsi Melt New York Eatery</code></pre>
+<pre class="r"><code># Fake
+head(distribution_6_csv) %&gt;% 
+  select(
+    work_title,
+    performer_name,
+    venue_name
+  )
+##          work_title performer_name           venue_name
+## 1    All Night Long        Failure                Event
+## 2         NYPD Blue       Tomahawk                 &lt;NA&gt;
+## 3          Garchomp       Tomahawk       Nightlife Spot
+## 4              NCIS       Headswim                 &lt;NA&gt;
+## 5 The Fifth Element      Meshuggah                 &lt;NA&gt;
+## 6          Barbican      Cortizone Arts &amp; Entertainment</code></pre>
+<p>Alright, groovy! Let’s next move on to create some fake dates.</p>
+</div>
+<div id="create-fake-dates-with-ds4psy" class="section level2">
+<h2>7. Create fake dates with <strong>ds4psy</strong></h2>
+<p>We need something to create fake dates with. Luckily I found a small package called <a href="https://www.rdocumentation.org/packages/ds4psy/versions/0.7.0/topics/sample_date">ds4psy</a> that does exactly that (among other things).</p>
+<p>We’ll take the <em>min</em> and <em>max</em> for both <em>performance_date_start</em> and <em>performance_date_end</em>.</p>
+<p>For this sampling, we need to use <em>rowwise()</em> together with <em>mutate()</em>. Without it, all of the dates would be the same. However, <em>rowwise()</em> slows things down and if speed is what you’re after, you should probably try to find a faster alternative. But for our purposes, <em>rowwise()</em> is perfectly fine.</p>
+<p>To wrap it up, we need a little bit of <em>select()</em> and <em>rename()</em>. That way the new columns end up replacing the original ones and get their names.</p>
+<pre class="r"><code>distribution_7_csv &lt;- distribution_6_csv %&gt;% 
+  
+  # Since rowwise groups the data by each row operations are potentially slower than without any grouping. Therefore, it&#39;s mostly better to use vectorized functions whenever possible instead of operating row-by-row.
+  rowwise() %&gt;%
+  
+  mutate(
+    
+    performance_date_start_uusi = 
+      ds4psy::sample_date(
+        from = min(.$performance_date_start),
+        to = max(.$performance_date_start, size = 1)),
+    
+    performance_date_end_uusi = 
+      ds4psy::sample_date(
+        from = min(.$performance_date_end), 
+        to = max(.$performance_date_end, size = 1))
+    
+  ) %&gt;%
+  
+  select(
+    -c(
+      performance_date_start, 
+      performance_date_end
+    )
+  ) %&gt;% 
+  
+  rename(
+    performance_date_start = performance_date_start_uusi,
+    performance_date_end   = performance_date_end_uusi
+  ) %&gt;%
+  
+  ungroup() %&gt;% # Because of rowwise(), we need to ungroup after mutate().
+  
+  as.data.frame() # Because of fakeR, we&#39;ll be using data frames today.</code></pre>
+<p>And this is what the fake dates look like, compared to the original ones:</p>
+<pre class="r"><code># Original
+head(distribution_csv) %&gt;% 
+  
+  select(
+    performance_date_start,
+    performance_date_end
+  )
+##   performance_date_start performance_date_end
+## 1             2017-01-01           2017-12-31
+## 2             2018-01-01           2018-12-31
+## 3             2017-08-08           2017-08-08
+## 4             2018-07-01           2018-07-01
+## 5             2018-01-01           2018-12-31
+## 6             2017-01-01           2017-12-31</code></pre>
+<pre class="r"><code># Fake
+head(distribution_7_csv) %&gt;% 
+  
+  select(
+    performance_date_start,
+    performance_date_end
+  )
+##   performance_date_start performance_date_end
+## 1             2018-04-06           2017-12-11
+## 2             2017-11-17           2017-11-03
+## 3             2018-03-31           2018-10-20
+## 4             2017-09-19           2017-12-06
+## 5             2017-05-18           2018-04-29
+## 6             2017-01-08           2018-10-31</code></pre>
+<p>We’re seeing a trend here, aren’t we? Using different methods and different packages to get to the same point with each of the variables that we want to anonymize.</p>
+<p>On that note, let’s bring <strong>fakeR</strong> back for a bit to simulate those variables that only need to be scrambled and not created from scratch.</p>
+</div>
+<div id="im-bringing-faker-back-to-finish-things-off" class="section level2">
+<h2>8. I’m bringing <strong>fakeR</strong> back to finish things off</h2>
+<p>As we saw with the earlier Spotify example, <a href="https://cran.r-project.org/web/packages/fakeR/vignettes/my-vignette.html">fakeR</a> is good with values that are same or similar compared to the original ones. They just need to be scrambled.</p>
+<p>These columns are perfect examples of that:</p>
+<blockquote>
+<ul>
+<li>rightsholder_role</li>
+<li>rightsholder_share_pct</li>
+<li>distribution_category_1</li>
+<li>distribution_category_2</li>
+<li>distribution_category_3</li>
+<li>amount_eur</li>
+</ul>
+</blockquote>
+<p>Let’s take a quick look of what those columns are about:</p>
+<pre class="r"><code>head(distribution_7_csv) %&gt;% 
+  
+  select(
+    rightsholder_role,
+    rightsholder_share_pct,
+    distribution_category_1,
+    distribution_category_2,
+    distribution_category_3,
+    amount_eur
+  )
+##   rightsholder_role rightsholder_share_pct distribution_category_1
+## 1          Arranger                   8,33        Background music
+## 2          Arranger                   8,34        Background music
+## 3          Arranger                   8,33                  Events
+## 4          Arranger                   8,34                  Events
+## 5          Arranger                   8,34        Background music
+## 6          Arranger                   8,33        Background music
+##   distribution_category_2 distribution_category_3 amount_eur
+## 1                  Events                  Events       0,12
+## 2                  Events                  Events       0,36
+## 3        Live and DJ gigs        Live and DJ gigs       0,16
+## 4  Concerts and festivals                   Small       1,34
+## 5                  Events                  Events       0,24
+## 6                  Events                  Events       0,05</code></pre>
+<p>Okay, now we know what the simulated data should resemble.</p>
+<p>With these ones we can use the <em>stealth.level</em> = 2 argument, so that fakeR simulates each variable independently. And just remember to ignore all the columns we don’t want to simulate.</p>
+<pre class="r"><code>distribution_8_csv &lt;- simulate_dataset(
+  distribution_7_csv, 
+  use.levels = TRUE, 
+  stealth.level = 2, 
+  ignore = c(
+    &quot;work_number&quot;, 
+    &quot;work_title&quot;,
+    &quot;rightsholder_ipi_number&quot;,
+    &quot;rightsholder_name&quot;,
+    &quot;venue_name&quot;,
+    &quot;performer_name&quot;,
+    &quot;performance_date_start&quot;,
+    &quot;performance_date_end&quot;,
+    &quot;iswc_code&quot;
+  )
+)</code></pre>
+<p>Once more, we can compare the original and simulated data. What do you think?</p>
+<pre class="r"><code># Original
+head(distribution_csv) %&gt;% 
+  
+  select(
+    rightsholder_role, 
+    rightsholder_share_pct, 
+    distribution_category_1, 
+    distribution_category_2, 
+    distribution_category_3,
+    amount_eur
+  )
+##   rightsholder_role rightsholder_share_pct distribution_category_1
+## 1          Arranger                    833        Background music
+## 2          Arranger                    834        Background music
+## 3          Arranger                    833                  Events
+## 4          Arranger                    834                  Events
+## 5          Arranger                    834        Background music
+## 6          Arranger                    833        Background music
+##   distribution_category_2 distribution_category_3 amount_eur
+## 1                  Events                  Events       0,12
+## 2                  Events                  Events       0,36
+## 3        Live and DJ gigs        Live and DJ gigs       0,16
+## 4  Concerts and festivals                   Small       1,34
+## 5                  Events                  Events       0,24
+## 6                  Events                  Events       0,05</code></pre>
+<pre class="r"><code># Simulated
+head(distribution_8_csv) %&gt;% 
+  select(
+    rightsholder_role, 
+    rightsholder_share_pct, 
+    distribution_category_1, 
+    distribution_category_2, 
+    distribution_category_3,
+    amount_eur
+  )
+##   rightsholder_role rightsholder_share_pct distribution_category_1
+## 1          Arranger                   8,34        Background music
+## 2          Arranger                   8,34        Background music
+## 3          Arranger                   8,33                  Events
+## 4          Arranger                   8,33                  Events
+## 5          Arranger                   8,33        Background music
+## 6          Arranger                   8,34                  Events
+##   distribution_category_2 distribution_category_3 amount_eur
+## 1                  Events                  Events       0,35
+## 2                  Events        Live and DJ gigs       0,12
+## 3  Concerts and festivals                  Events       0,24
+## 4                  Events                  Events       1,05
+## 5                  Events                  Medium       0,08
+## 6                  Events                  Events       0,31</code></pre>
+</div>
+<div id="final-cleanup-with-tidyverse-and-base-r" class="section level2">
+<h2>9. Final cleanup with <strong>tidyverse</strong> and <strong>base R</strong></h2>
+<p>Almost there! Let’s <em>select()</em> the columns we want to include in the final data frame, in the order we want them in. This time we’ll be selecting all the columns that were changed somehow.</p>
+<pre class="r"><code>distribution_9_csv &lt;- distribution_8_csv %&gt;% 
+    
+  select(
+    work_number,
+    work_title, 
+    rightsholder_ipi_number,
+    rightsholder_name,
+    rightsholder_role,
+    rightsholder_share_pct,
+    distribution_category_1,
+    distribution_category_2,
+    distribution_category_3,
+    venue_name,
+    performer_name,
+    performance_date_start,
+    performance_date_end,
+    iswc_code,
+    amount_eur
+  )</code></pre>
+<p>We also need to give the columns back their original names with <em>colnames()</em> function from <strong>base R</strong>:</p>
+<pre class="r"><code>col_names_2 &lt;- c(
+  &quot;Work number&quot;,
+  &quot;Title of work&quot;,
+  &quot;Rightsholder&#39;s IPI number&quot;,
+  &quot;Rightsholder&#39;s name&quot;,
+  &quot;Rightsholder&#39;s role&quot;,
+  &quot;Rightsholder&#39;s share (%)&quot;,
+  &quot;Distribution main category&quot;,
+  &quot;Distribution intermediate category&quot;,
+  &quot;Distribution subcategory&quot;,
+  &quot;Venue name&quot;,
+  &quot;Performer name&quot;,
+  &quot;Performance date (start)&quot;,
+  &quot;Performance date (end)&quot;,
+  &quot;ISWC&quot;,
+  &quot;Amount (€)&quot;
+)
+
+colnames(distribution_9_csv) &lt;- col_names_2</code></pre>
+<p>Here you can see the complete transformed dataset:</p>
+<pre class="r"><code>distribution_9_csv
+##     Work number                   Title of work Rightsholder&#39;s IPI number
+## 1      40281254                  All Night Long                 370920627
+## 2      34235492                       NYPD Blue                 597137869
+## 3      32917123                        Garchomp                  69762901
+## 4      44167446                            NCIS                 239954359
+## 5      41563174               The Fifth Element                 445863699
+## 6      42788497                        Barbican                 174888075
+## 7      40502187                       Lickitung                 149157191
+## 8      34163009                              Up                 607932918
+## 9      42035276                        Skuntank                 305469216
+## 10     30603853               The Backyardigans                 519470211
+## 11     42611431              Take the High Road                 461289831
+## 12     31884914                    Mystic River                  82240452
+## 13     37599751                           Karen                 135110270
+## 14     33501536                      Que Locura                 423757565
+## 15     39476803                           Numel                 395979960
+## 16     29131038              A Class by Himself                 514810310
+## 17     41625381                      Gothitelle                 532409296
+## 18     32409393                    Jersey Shore                 401651402
+## 19     43259810                      Ros na Rún                  74162639
+## 20     30562634              Petticoat Junction                 352419352
+## 21     36986442                       Exeggutor                 259369926
+## 22     42383943                          Hoppip                 489403565
+## 23     41251876                   Pair of Kings                 191190901
+## 24     37770086                           Burmy                 294431653
+## 25     41509452           The Milton Berle Show                 330239532
+## 26     28108447                           Gloom                 597019119
+## 27     44134581            Beverly Hills, 90210                 371713568
+## 28     43006455                         Azurill                  10669674
+## 29     39004279                         Colditz                 564790195
+## 30     43708273          Totteridge &amp; Whetstone                 337950798
+## 31     41854832         The Curse of Oak Island                 500343099
+## 32     38198952                        Ampharos                 387603869
+## 33     40623313                        Frontier                 526571906
+## 34     31772931                         Tyrogue                 267832259
+## 35     35981559                         Fashion                 530315533
+## 36     31857939                        Primeape                 473466822
+## 37     30682331                       Scolipede                  53816402
+## 38     44019883                         Mienfoo                 100176019
+## 39     30349153                     Lucky Louie                 607958972
+## 40     32951752                      Decisiones                  55362976
+## 41     38157175                   Seeing Things                 439670556
+## 42     37449270               Can&#39;t Happen Here                 518869645
+## 43     42073110                   Oxford Circus                 144416704
+## 44     42756744                        Swadloon                 331706958
+## 45     39523381                         Dunkirk                 205645053
+## 46     36693233                          Raichu                 277126670
+## 47     41312286                  Romeo + Juliet                 135815695
+## 48     32559953           The Ghost &amp; Mrs. Muir                 316465720
+## 49     40512760    Who Wants to Be a Superhero?                  41843757
+## 50     29891571                         Columbo                  57384677
+## 51     42457257                     The Pianist                 486923772
+## 52     29740702                   Lambeth North                  85180896
+## 53     37365166                      Jigglypuff                  70631631
+## 54     31568669                        Dusclops                 235785045
+## 55     40760807                       Vanilluxe                 577529140
+## 56     43380062                          Zapdos                 491708513
+## 57     38792936                The Big Lebowski                  35178119
+## 58     35082386           It&#39;s a Wonderful Life                 502632875
+## 59     36548871                          Pocoyo                 122919486
+## 60     43044138    Location, Location, Location                 482694401
+## 61     38082425                    Canary Wharf                  37239353
+## 62     32611230           History Never Repeats                 349587242
+## 63     34000942                       The Loner                 554605630
+## 64     41721936                     Dear Sister                 293507464
+## 65     33050902                         Blitzle                   5902971
+## 66     41951743                     Family Ties                  60654731
+## 67     40426361                         Passion                 129573282
+## 68     35388840                          Pineco                 158371786
+## 69     41096288                  Wimbledon Park                 424809716
+## 70     43494850                     Pretty Wild                 458869469
+## 71     34906435                   Zorro and Son                 186940539
+## 72     28105167          Texas Country Reporter                 570846829
+## 73     34934992                 The Persuaders!                  69546075
+## 74     36601444      The New Dick Van Dyke Show                 106298591
+## 75     28992504              Tattooed Love Boys                 239881106
+## 76     43464322           One Foot in the Grave                 229724578
+## 77     30441440                    Police Ten 7                 318672790
+## 78     29827071                       Boot Camp                 446900005
+## 79     38855848                   Roding Valley                 276001255
+## 80     36686423                       Lilligant                 568362114
+## 81     41215844                       Zebstrika                 302215140
+## 82     35267358                         Kingdra                 547252948
+## 83     29662396                     Thundercats                 240619951
+## 84     43927977    Rob Dyrdek&#39;s Fantasy Factory                 211380049
+## 85     41660154                     Elizabeth R                  26909013
+## 86     44079720                  Ultimate Force                 579076093
+## 87     29993119                        Spinarak                 210230436
+## 88     35887051                          Victim                 292138474
+## 89     33380330                        Dreamin&#39;                 343934614
+## 90     36374422                         Altaria                 123139050
+## 91     30175334                       Thundurus                 414244357
+## 92     33227892                       Honchkrow                  43985043
+## 93     36218267                        Zweilous                 460620891
+## 94     36357383                 Nidoran&lt;U+2640&gt;                 149770097
+## 95     35290724                           Luxio                 562335347
+## 96     42153463                   Charlie Chalk                 187398780
+## 97     38663223                         Awkward                 324114399
+## 98     35276896                     Workaholics                 344456812
+## 99     41432148           History Never Repeats                 340059171
+## 100    30570693                       Druddigon                 489886371
+## 101    32844074 The New Adventures of Pinocchio                 240153504
+## 102    33742011             McMorris &amp; McMorris                 250297585
+## 103    34467058                   Covent Garden                 357628890
+## 104    41188373                       Hitmonlee                 165875173
+## 105    41451087                 Message of Love                 547702911
+## 106    39442718                  Buckhurst Hill                 562103487
+## 107    32765302                   Swiss Cottage                 515203447
+## 108    41015108                    Aldgate East                 544194506
+## 109    40426812              Brokeback Mountain                 477868880
+## 110    28698731           Pop! Goes the Country                 117535937
+## 111    40712234                Wheel of Fortune                 144431595
+## 112    30334986                         Marowak                 432124671
+## 113    42748011                        Swampert                 149320252
+## 114    37638647                        Skiploom                 348669794
+## 115    37038177                         Rufflet                 304169557
+## 116    28398584                    Edgware Road                 194945875
+## 117    41635507          Food Network Challenge                 273706280
+## 118    42984745    Hergé&#39;s Adventures of Tintin                 140933619
+## 119    28771992                          Pinner                 271149686
+## 120    35385184                Land of the Lost                  32665639
+## 121    34051513                    Sister Disco                 103739168
+## 122    29409062                         Branded                 174815409
+## 123    33567113                      Carracosta                 544559863
+## 124    36251081                     Ghostwriter                 487308166
+## 125    37987886                       Wife Swap                 520597820
+## 126    28518252            Gomer Pyle, U.S.M.C.                 585582219
+## 127    39631012                         Togetic                 338831091
+## 128    33386899                  My Little Pony                 156877681
+## 129    30366620            Kimba the White Lion                 238532558
+## 130    39616467                       Gargoyles                 577524543
+## 131    39020961                        Froslass                 161801775
+## 132    28340485                 All Is Forgiven                 412532939
+## 133    39162869                   Euston Square                 404344694
+## 134    42583755                        Chimecho                 268896525
+## 135    43547311            The Dukes of Hazzard                  86701538
+## 136    43872773                        Hariyama                 470254148
+## 137    32972478                          Pidove                  62126479
+## 138    31908235                    Kentish Town                  79490867
+## 139    28668212                       Vileplume                 435496198
+## 140    43316291                     Canons Park                 240668089
+## 141    41035957                       Mister Ed                 301807502
+## 142    42202669                       Southland                  51425439
+##        Rightsholder&#39;s name Rightsholder&#39;s role Rightsholder&#39;s share (%)
+## 1   Brisa Bradtke-Eichmann            Arranger                     8,34
+## 2   Brisa Bradtke-Eichmann            Arranger                     8,34
+## 3   Brisa Bradtke-Eichmann            Arranger                     8,33
+## 4   Brisa Bradtke-Eichmann            Arranger                     8,33
+## 5   Brisa Bradtke-Eichmann            Arranger                     8,33
+## 6   Brisa Bradtke-Eichmann            Arranger                     8,34
+## 7   Brisa Bradtke-Eichmann            Arranger                     8,34
+## 8   Brisa Bradtke-Eichmann            Arranger                     8,33
+## 9   Brisa Bradtke-Eichmann            Arranger                     8,34
+## 10  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 11  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 12  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 13  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 14  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 15  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 16  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 17  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 18  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 19  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 20  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 21  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 22  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 23  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 24  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 25  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 26  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 27  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 28  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 29  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 30  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 31  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 32  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 33  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 34  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 35  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 36  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 37  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 38  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 39  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 40  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 41  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 42  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 43  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 44  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 45  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 46  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 47  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 48  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 49  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 50  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 51  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 52  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 53  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 54  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 55  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 56  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 57  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 58  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 59  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 60  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 61  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 62  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 63  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 64  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 65  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 66  Brisa Bradtke-Eichmann            Arranger                       25
+## 67  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 68  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 69  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 70  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 71  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 72  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 73  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 74  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 75  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 76  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 77  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 78  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 79  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 80  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 81  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 82  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 83  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 84  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 85  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 86  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 87  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 88  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 89  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 90  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 91  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 92  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 93  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 94  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 95  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 96  Brisa Bradtke-Eichmann            Arranger                     8,33
+## 97  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 98  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 99  Brisa Bradtke-Eichmann            Arranger                     8,34
+## 100 Brisa Bradtke-Eichmann            Arranger                     8,33
+## 101 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 102 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 103 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 104 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 105 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 106 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 107 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 108 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 109 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 110 Brisa Bradtke-Eichmann            Arranger                     8,33
+## 111 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 112 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 113 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 114 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 115 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 116 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 117 Brisa Bradtke-Eichmann            Arranger                       25
+## 118 Brisa Bradtke-Eichmann              Author                     8,34
+## 119 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 120 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 121 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 122 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 123 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 124 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 125 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 126 Brisa Bradtke-Eichmann            Arranger                     8,33
+## 127 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 128 Brisa Bradtke-Eichmann            Arranger                     8,33
+## 129 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 130 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 131 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 132 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 133 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 134 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 135 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 136 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 137 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 138 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 139 Brisa Bradtke-Eichmann            Arranger                       25
+## 140 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 141 Brisa Bradtke-Eichmann            Arranger                     8,34
+## 142 Brisa Bradtke-Eichmann            Arranger                     8,34
+##     Distribution main category Distribution intermediate category
+## 1             Background music                             Events
+## 2             Background music                             Events
+## 3                       Events             Concerts and festivals
+## 4                       Events                             Events
+## 5             Background music                             Events
+## 6                       Events                             Events
+## 7                       Events             Concerts and festivals
+## 8                       Events                             Events
+## 9                       Events                             Events
+## 10                      Events                             Events
+## 11            Background music                             Events
+## 12                      Events                             Events
+## 13            Background music                             Events
+## 14            Background music                   Live and DJ gigs
+## 15            Background music                             Events
+## 16            Background music             Concerts and festivals
+## 17                      Events                             Events
+## 18            Background music             Concerts and festivals
+## 19                      Events             Concerts and festivals
+## 20                      Events                             Events
+## 21                      Events                             Events
+## 22            Background music             Concerts and festivals
+## 23                      Events                             Events
+## 24                      Events             Concerts and festivals
+## 25                      Events                             Events
+## 26            Background music                             Events
+## 27            Background music             Concerts and festivals
+## 28            Background music                             Events
+## 29            Background music             Concerts and festivals
+## 30                      Events             Concerts and festivals
+## 31            Background music                             Events
+## 32                      Events             Concerts and festivals
+## 33            Background music                             Events
+## 34            Background music             Concerts and festivals
+## 35            Background music                             Events
+## 36            Background music                             Events
+## 37            Background music             Concerts and festivals
+## 38                      Events                             Events
+## 39                      Events                             Events
+## 40            Background music             Concerts and festivals
+## 41            Background music                             Events
+## 42                      Events                   Live and DJ gigs
+## 43                      Events             Concerts and festivals
+## 44                      Events                             Events
+## 45                      Events                             Events
+## 46            Background music             Concerts and festivals
+## 47            Background music                             Events
+## 48            Background music                             Events
+## 49                      Events             Concerts and festivals
+## 50            Background music                   Live and DJ gigs
+## 51            Background music                             Events
+## 52            Background music             Concerts and festivals
+## 53                      Events                   Live and DJ gigs
+## 54                      Events                             Events
+## 55                      Events             Concerts and festivals
+## 56            Background music             Concerts and festivals
+## 57            Background music             Concerts and festivals
+## 58            Background music             Concerts and festivals
+## 59                      Events             Concerts and festivals
+## 60            Background music                             Events
+## 61                      Events                             Events
+## 62                      Events                             Events
+## 63                      Events                             Events
+## 64                      Events             Concerts and festivals
+## 65                      Events                   Live and DJ gigs
+## 66                      Events                   Live and DJ gigs
+## 67                      Events             Concerts and festivals
+## 68            Background music             Concerts and festivals
+## 69                      Events             Concerts and festivals
+## 70                      Events                             Events
+## 71                      Events             Concerts and festivals
+## 72            Background music                             Events
+## 73                      Events                             Events
+## 74            Background music             Concerts and festivals
+## 75            Background music                             Events
+## 76            Background music             Concerts and festivals
+## 77            Background music                             Events
+## 78                      Events                             Events
+## 79            Background music                             Events
+## 80            Background music             Concerts and festivals
+## 81                      Events             Concerts and festivals
+## 82                      Events             Concerts and festivals
+## 83                      Events             Concerts and festivals
+## 84                      Events             Concerts and festivals
+## 85                      Events             Concerts and festivals
+## 86                      Events                             Events
+## 87                      Events                             Events
+## 88                      Events             Concerts and festivals
+## 89            Background music                             Events
+## 90            Background music             Concerts and festivals
+## 91                      Events                             Events
+## 92                      Events                             Events
+## 93                      Events             Concerts and festivals
+## 94                      Events                   Live and DJ gigs
+## 95                      Events             Concerts and festivals
+## 96            Background music                             Events
+## 97            Background music                             Events
+## 98                      Events             Concerts and festivals
+## 99            Background music             Concerts and festivals
+## 100                     Events                             Events
+## 101                     Events             Concerts and festivals
+## 102                     Events                             Events
+## 103                     Events             Concerts and festivals
+## 104                     Events             Concerts and festivals
+## 105                     Events                             Events
+## 106                     Events                   Live and DJ gigs
+## 107                     Events             Concerts and festivals
+## 108                     Events             Concerts and festivals
+## 109                     Events             Concerts and festivals
+## 110           Background music             Concerts and festivals
+## 111                     Events             Concerts and festivals
+## 112           Background music                             Events
+## 113           Background music                             Events
+## 114                     Events             Concerts and festivals
+## 115           Background music             Concerts and festivals
+## 116                     Events                             Events
+## 117                     Events                             Events
+## 118                     Events             Concerts and festivals
+## 119                     Events             Concerts and festivals
+## 120                     Events             Concerts and festivals
+## 121           Background music                             Events
+## 122           Background music             Concerts and festivals
+## 123                     Events                             Events
+## 124                     Events                             Events
+## 125                     Events             Concerts and festivals
+## 126           Background music             Concerts and festivals
+## 127                     Events             Concerts and festivals
+## 128                     Events             Concerts and festivals
+## 129           Background music                             Events
+## 130                     Events                             Events
+## 131           Background music             Concerts and festivals
+## 132           Background music                             Events
+## 133           Background music                             Events
+## 134           Background music             Concerts and festivals
+## 135                     Events             Concerts and festivals
+## 136           Background music             Concerts and festivals
+## 137           Background music             Concerts and festivals
+## 138           Background music                             Events
+## 139           Background music             Concerts and festivals
+## 140           Background music                             Events
+## 141                     Events             Concerts and festivals
+## 142                     Events             Concerts and festivals
+##     Distribution subcategory                  Venue name   Performer name
+## 1                     Events                       Event          Failure
+## 2           Live and DJ gigs                        &lt;NA&gt;         Tomahawk
+## 3                     Events              Nightlife Spot         Tomahawk
+## 4                     Events                        &lt;NA&gt;         Headswim
+## 5                     Medium                        &lt;NA&gt;        Meshuggah
+## 6                     Events        Arts &amp; Entertainment        Cortizone
+## 7                      Small        Arts &amp; Entertainment         Trans Am
+## 8                     Events                        &lt;NA&gt;   Cosmic Psychos
+## 9                     Medium                        &lt;NA&gt;        Psychotic
+## 10                    Events                   Residence     Big Business
+## 11          Live and DJ gigs                        &lt;NA&gt;              Paw
+## 12                    Medium                        &lt;NA&gt;            Pablo
+## 13                    Events                        &lt;NA&gt;           Tricky
+## 14                     Small                        &lt;NA&gt;        Cortizone
+## 15                    Medium                        &lt;NA&gt;         Headswim
+## 16                    Events                        &lt;NA&gt;            Dälek
+## 17                     Small                        &lt;NA&gt;               TU
+## 18                    Events                        &lt;NA&gt;        Intronaut
+## 19                     Small                        &lt;NA&gt;            Dälek
+## 20                    Events                        &lt;NA&gt;     Big Business
+## 21                    Events                        &lt;NA&gt;               TU
+## 22                    Medium                        &lt;NA&gt;  Russian Circles
+## 23                    Events                        &lt;NA&gt;           Kinski
+## 24                    Events                        &lt;NA&gt;          Failure
+## 25                     Small                        &lt;NA&gt;        Intronaut
+## 26                    Events                        &lt;NA&gt;        Psychotic
+## 27                    Events                        &lt;NA&gt;     King Crimson
+## 28                    Events                        &lt;NA&gt;              YOB
+## 29                    Medium                        &lt;NA&gt;        Cortizone
+## 30                    Events                        &lt;NA&gt;         Trans Am
+## 31                    Medium                        &lt;NA&gt;            Peach
+## 32                    Medium                        &lt;NA&gt;        Psychotic
+## 33                    Medium                        &lt;NA&gt;        Intronaut
+## 34                    Medium                        &lt;NA&gt; The Flaming Lips
+## 35                    Events                        &lt;NA&gt;         The Cows
+## 36                    Medium                        &lt;NA&gt;         The Cows
+## 37                    Events                        &lt;NA&gt;       Tweak Bird
+## 38                    Events Professional &amp; Other Places         Tomahawk
+## 39                    Events                        &lt;NA&gt;        Wovenhand
+## 40                    Medium                        &lt;NA&gt;   Cosmic Psychos
+## 41                     Small          Travel &amp; Transport   Cosmic Psychos
+## 42                    Events                        &lt;NA&gt;     King Crimson
+## 43                    Events                        &lt;NA&gt;            Dälek
+## 44                    Medium                        &lt;NA&gt;         The Cows
+## 45                    Medium                        &lt;NA&gt;        Meshuggah
+## 46                    Events                        &lt;NA&gt;        Cortizone
+## 47                    Events                        &lt;NA&gt;        Wovenhand
+## 48                    Events                        &lt;NA&gt;            Pablo
+## 49                    Events                        &lt;NA&gt;         Headswim
+## 50                    Events                        &lt;NA&gt;  Russian Circles
+## 51                    Medium                        &lt;NA&gt;            Peach
+## 52                    Events                        &lt;NA&gt;        Psychotic
+## 53                    Events                        &lt;NA&gt;        Psychotic
+## 54                    Events                        &lt;NA&gt;         The Cows
+## 55          Live and DJ gigs                        &lt;NA&gt;            Jakob
+## 56                    Medium                        &lt;NA&gt;         Fantômas
+## 57                     Small                        &lt;NA&gt;            Rajas
+## 58                    Events                        &lt;NA&gt; The Flaming Lips
+## 59                    Medium        College &amp; University        Meshuggah
+## 60                    Medium                        &lt;NA&gt;        Meshuggah
+## 61                    Medium                        &lt;NA&gt;               TU
+## 62                    Events                        &lt;NA&gt;      The Melvins
+## 63                    Medium                        &lt;NA&gt;          Failure
+## 64                    Events                        &lt;NA&gt;  Russian Circles
+## 65                    Events                        &lt;NA&gt;      Melt-Banana
+## 66                    Events                        &lt;NA&gt;         Trans Am
+## 67                    Medium                        &lt;NA&gt;  Russian Circles
+## 68                     Small                        &lt;NA&gt;         The Cows
+## 69                     Small                        &lt;NA&gt;       Tweak Bird
+## 70                    Events                        &lt;NA&gt;            Rajas
+## 71                     Small                        &lt;NA&gt;         Trans Am
+## 72                    Events                        &lt;NA&gt;       Tweak Bird
+## 73                    Events                        &lt;NA&gt;         The Cows
+## 74                    Events                        &lt;NA&gt; The Flaming Lips
+## 75                    Events                        &lt;NA&gt;            Rajas
+## 76                    Medium                        &lt;NA&gt;      Melt-Banana
+## 77                    Events                        &lt;NA&gt;        Psychotic
+## 78                     Small                        &lt;NA&gt;         Fantômas
+## 79                    Events                        &lt;NA&gt;        Intronaut
+## 80                    Events                        &lt;NA&gt;               TU
+## 81                     Small                        &lt;NA&gt;      The Melvins
+## 82                    Medium                        &lt;NA&gt;           Kinski
+## 83                    Events                        &lt;NA&gt;           Tricky
+## 84                     Small                        &lt;NA&gt;         Mastodon
+## 85                    Events                        &lt;NA&gt;            Dälek
+## 86                    Medium                        &lt;NA&gt;            Peach
+## 87                    Medium                        &lt;NA&gt;            Jakob
+## 88                    Medium                        &lt;NA&gt;          Failure
+## 89                    Events                        &lt;NA&gt;     Big Business
+## 90                    Events                        &lt;NA&gt;   Cosmic Psychos
+## 91                    Medium                        &lt;NA&gt;         Trans Am
+## 92                    Events                        &lt;NA&gt;       Tweak Bird
+## 93                     Small                        &lt;NA&gt;               TU
+## 94                    Events                        &lt;NA&gt;         Fantômas
+## 95                    Events                        &lt;NA&gt;            Pablo
+## 96                    Medium                        &lt;NA&gt;         Mastodon
+## 97          Live and DJ gigs                        &lt;NA&gt;            Jakob
+## 98                    Events                        &lt;NA&gt;        Psychotic
+## 99                    Events                        &lt;NA&gt;              YOB
+## 100                   Medium              Shop &amp; Service        Meshuggah
+## 101                   Events                        &lt;NA&gt;         The Cows
+## 102                   Events                        &lt;NA&gt;            Rajas
+## 103                    Small                        &lt;NA&gt;        Psychotic
+## 104                   Events                        &lt;NA&gt;            Peach
+## 105                   Medium                        &lt;NA&gt;            Jakob
+## 106                   Medium                        &lt;NA&gt;         Mastodon
+## 107                   Events                        &lt;NA&gt;      Melt-Banana
+## 108                   Medium                        &lt;NA&gt;         The Cows
+## 109                   Medium                        &lt;NA&gt;          Failure
+## 110         Live and DJ gigs                        &lt;NA&gt;     Big Business
+## 111                    Small                        &lt;NA&gt;   Cosmic Psychos
+## 112                   Events                        &lt;NA&gt;      Melt-Banana
+## 113                    Small                        &lt;NA&gt;          Failure
+## 114                   Events                        &lt;NA&gt;              Paw
+## 115                   Events                        Food         Trans Am
+## 116                   Medium                        &lt;NA&gt;            Jakob
+## 117                    Small                        &lt;NA&gt;              YOB
+## 118                   Medium                        &lt;NA&gt;        Psychotic
+## 119                    Small                        &lt;NA&gt;            Pablo
+## 120                   Medium                        &lt;NA&gt;            Pablo
+## 121                   Events                        &lt;NA&gt;        Intronaut
+## 122                   Events                        &lt;NA&gt;            Rajas
+## 123                   Medium                        &lt;NA&gt;       Tweak Bird
+## 124                   Medium                        &lt;NA&gt;        Intronaut
+## 125                   Medium                        &lt;NA&gt;        Cortizone
+## 126                   Medium                        &lt;NA&gt;        Meshuggah
+## 127                   Events                        &lt;NA&gt;              YOB
+## 128                   Events                        &lt;NA&gt;         Trans Am
+## 129                    Small                        &lt;NA&gt;         The Cows
+## 130                   Events                        &lt;NA&gt;     Big Business
+## 131                   Medium                        &lt;NA&gt;       Tweak Bird
+## 132                   Events                        &lt;NA&gt;      The Melvins
+## 133                    Small                        &lt;NA&gt; The Flaming Lips
+## 134                   Events                        &lt;NA&gt;       Tweak Bird
+## 135                   Events                        &lt;NA&gt;              YOB
+## 136                   Events                        &lt;NA&gt; The Flaming Lips
+## 137                   Events                        &lt;NA&gt;         Trans Am
+## 138                   Events                        &lt;NA&gt;        Cortizone
+## 139                    Small                        &lt;NA&gt;            Peach
+## 140                   Medium                        &lt;NA&gt;         The Cows
+## 141                   Events                        &lt;NA&gt;           Tricky
+## 142                   Medium                        &lt;NA&gt;            Dälek
+##     Performance date (start) Performance date (end)        ISWC Amount (\200)
+## 1                 2018-04-06             2017-12-11 T9198288787       0,35
+## 2                 2017-11-17             2017-11-03 T9147055834       0,12
+## 3                 2018-03-31             2018-10-20 T9199362119       0,24
+## 4                 2017-09-19             2017-12-06        &lt;NA&gt;       1,05
+## 5                 2017-05-18             2018-04-29 T9143534917       0,08
+## 6                 2017-01-08             2018-10-31 T9146936323       0,31
+## 7                 2017-12-26             2018-03-08 T9132841951       1,76
+## 8                 2017-05-04             2018-06-20 T9172625582       0,07
+## 9                 2017-11-24             2018-09-28 T9162641431       0,32
+## 10                2018-02-21             2018-11-16 T9174688687       0,66
+## 11                2017-03-17             2018-07-14 T9172402033       0,08
+## 12                2017-07-12             2018-07-01        &lt;NA&gt;       1,38
+## 13                2018-04-03             2018-09-16 T9202538921       0,25
+## 14                2017-06-23             2018-06-10        &lt;NA&gt;       0,08
+## 15                2017-10-13             2018-01-08 T9152249488       0,32
+## 16                2017-02-06             2018-09-30        &lt;NA&gt;       1,76
+## 17                2017-09-26             2018-11-14 T9188319719       0,24
+## 18                2018-03-06             2018-02-16 T9167543770       0,12
+## 19                2017-05-21             2017-10-22 T9209042374       0,66
+## 20                2018-06-14             2018-10-14 T9179655734       0,35
+## 21                2017-12-23             2018-06-25 T9176957338       0,24
+## 22                2017-03-25             2017-10-13 T9161005530       0,32
+## 23                2018-04-15             2018-06-12 T9177902090       1,74
+## 24                2018-01-16             2017-11-17 T9187463964       1,76
+## 25                2017-11-08             2018-07-15 T9131907505       0,35
+## 26                2017-01-02             2018-06-20 T9177952188       0,17
+## 27                2017-04-08             2018-02-07 T9139743135       1,34
+## 28                2018-05-23             2018-06-12 T9132371005       0,32
+## 29                2017-12-03             2018-07-03 T9169552462       1,32
+## 30                2017-02-26             2018-10-10        &lt;NA&gt;       2,60
+## 31                2017-10-02             2018-03-08 T9180449683       0,08
+## 32                2017-07-31             2018-05-11 T9155351285       0,44
+## 33                2017-10-13             2017-08-26 T9167953999       1,76
+## 34                2018-03-08             2018-01-16 T9149569926       0,05
+## 35                2018-06-14             2018-05-28 T9160155748       1,33
+## 36                2017-07-15             2018-11-23        &lt;NA&gt;       1,34
+## 37                2017-08-31             2018-11-03        &lt;NA&gt;       1,38
+## 38                2018-04-02             2017-08-15 T9150308544       0,44
+## 39                2017-01-30             2018-11-04        &lt;NA&gt;       1,38
+## 40                2017-10-12             2018-04-10 T9153559492       0,25
+## 41                2017-05-06             2017-09-27 T9166332689       0,08
+## 42                2018-01-21             2018-06-12 T9151254745       0,17
+## 43                2017-08-26             2018-06-07 T9133281225       0,31
+## 44                2017-07-11             2018-07-12        &lt;NA&gt;       0,31
+## 45                2018-03-22             2017-08-20 T9181148958       0,08
+## 46                2017-05-08             2017-11-06        &lt;NA&gt;       0,24
+## 47                2017-06-13             2017-08-11 T9192438898       0,24
+## 48                2017-08-08             2018-01-08 T9158150089       0,25
+## 49                2017-08-27             2018-11-16 T9165707200       0,44
+## 50                2017-10-10             2018-04-01 T9171977825       0,44
+## 51                2017-01-24             2018-02-03 T9177581328       2,60
+## 52                2018-05-15             2018-06-11 T9162581111       0,31
+## 53                2017-12-02             2018-02-06 T9134063490       2,44
+## 54                2018-06-17             2018-01-06 T9166162896       0,08
+## 55                2017-01-06             2018-07-15        &lt;NA&gt;       0,07
+## 56                2017-02-10             2018-04-06 T9191037218       0,32
+## 57                2017-08-15             2017-10-09 T9189104421       1,38
+## 58                2017-12-30             2017-08-29 T9145748245       0,47
+## 59                2017-08-17             2018-02-18 T9203329515       1,74
+## 60                2017-10-04             2018-02-27 T9158992847       0,66
+## 61                2018-06-09             2017-10-02 T9156444612       0,05
+## 62                2017-08-25             2018-11-09 T9191237185       1,38
+## 63                2017-12-30             2018-01-16 T9189057571       0,31
+## 64                2018-05-23             2018-03-27 T9135103677       0,08
+## 65                2017-01-10             2018-03-22 T9154366754       0,19
+## 66                2017-03-23             2017-08-10 T9171832817       0,31
+## 67                2017-02-02             2018-03-01        &lt;NA&gt;       1,32
+## 68                2018-03-22             2017-12-09        &lt;NA&gt;       0,24
+## 69                2018-05-17             2018-04-26 T9200407136       0,08
+## 70                2017-07-19             2017-10-02 T9133456165       0,12
+## 71                2017-03-20             2018-11-26 T9140649114       0,31
+## 72                2018-01-21             2017-08-10 T9152400387       2,44
+## 73                2017-02-26             2017-12-13 T9176858198       1,76
+## 74                2017-11-24             2018-12-07        &lt;NA&gt;       1,98
+## 75                2017-11-11             2018-08-02 T9205257184       0,31
+## 76                2018-03-09             2018-10-16 T9146722453       2,44
+## 77                2017-05-01             2018-06-18 T9140711677       2,60
+## 78                2018-01-22             2018-02-13 T9191251783       0,45
+## 79                2017-12-20             2017-12-27 T9170626943       0,08
+## 80                2017-01-19             2018-08-24 T9173641748       0,17
+## 81                2017-10-18             2018-01-11 T9148118836       1,74
+## 82                2017-04-06             2017-10-21 T9184753709       1,38
+## 83                2017-08-04             2018-10-01 T9192649241       1,05
+## 84                2018-05-21             2017-11-13        &lt;NA&gt;       1,38
+## 85                2018-03-09             2018-06-08 T9141393601       0,08
+## 86                2017-09-29             2018-09-19 T9141933001       1,32
+## 87                2017-02-14             2018-02-27 T9168814606       0,24
+## 88                2018-01-02             2018-06-01 T9186610787       0,06
+## 89                2018-04-05             2017-10-08        &lt;NA&gt;       0,24
+## 90                2017-01-31             2018-09-25 T9148240491       0,36
+## 91                2018-04-29             2018-01-18 T9138504170       0,31
+## 92                2018-05-12             2017-12-19 T9162414692       0,32
+## 93                2017-02-23             2018-05-12 T9153549463       0,31
+## 94                2018-03-31             2018-06-13 T9149934580       1,76
+## 95                2018-02-12             2017-11-10 T9131970294       0,44
+## 96                2017-09-30             2018-05-08 T9158870703       1,34
+## 97                2017-08-10             2018-06-15 T9146054000       0,47
+## 98                2018-03-13             2018-08-02 T9171564255       2,60
+## 99                2017-02-19             2018-09-24 T9207613347       0,45
+## 100               2017-02-23             2018-03-05 T9139789644       0,24
+## 101               2018-01-03             2018-04-02 T9144729285       0,24
+## 102               2017-12-14             2018-07-18 T9151258137       1,76
+## 103               2017-04-15             2018-05-02        &lt;NA&gt;       0,06
+## 104               2018-01-26             2018-03-11 T9144761184       0,24
+## 105               2017-01-09             2018-01-15 T9136154040       2,44
+## 106               2017-05-25             2018-03-31 T9132079050       0,08
+## 107               2017-03-02             2018-01-26 T9168815940       1,74
+## 108               2017-09-21             2018-12-28        &lt;NA&gt;       0,31
+## 109               2017-05-02             2018-08-31 T9210202989       0,08
+## 110               2017-02-03             2018-11-30 T9146015671       1,32
+## 111               2017-07-13             2018-03-16 T9189630132       0,24
+## 112               2017-04-11             2018-07-28 T9158124675       1,38
+## 113               2018-06-19             2017-12-24 T9166819170       1,74
+## 114               2018-06-18             2018-08-04 T9186902732       0,44
+## 115               2017-12-18             2017-11-29 T9166445802       1,74
+## 116               2018-01-22             2018-08-09 T9134391235       0,31
+## 117               2017-11-09             2018-04-27        &lt;NA&gt;       0,08
+## 118               2017-07-08             2018-11-18 T9141193316       0,24
+## 119               2017-08-24             2017-12-12 T9187843440       1,74
+## 120               2017-06-07             2018-10-11 T9178648569       0,66
+## 121               2018-03-05             2017-12-09 T9206503697       0,25
+## 122               2017-08-03             2018-08-14 T9163309193       0,47
+## 123               2018-03-17             2017-09-27        &lt;NA&gt;       0,19
+## 124               2017-06-22             2017-08-18 T9206858750       1,76
+## 125               2017-11-22             2017-11-16 T9182831966       0,17
+## 126               2017-03-11             2017-11-01        &lt;NA&gt;       1,98
+## 127               2017-09-07             2018-11-23 T9149622306       0,19
+## 128               2017-07-02             2018-10-26 T9151946679       0,08
+## 129               2017-07-01             2018-01-27        &lt;NA&gt;       0,31
+## 130               2017-05-11             2018-01-01        &lt;NA&gt;       0,17
+## 131               2017-07-02             2018-07-22 T9210282410       0,19
+## 132               2017-10-01             2018-05-06 T9162003367       0,45
+## 133               2017-02-19             2018-06-21 T9174752754       0,24
+## 134               2018-06-23             2018-07-20 T9160984372       1,38
+## 135               2017-08-29             2018-12-01 T9186498659       0,35
+## 136               2018-04-14             2018-06-05 T9131591727       0,19
+## 137               2017-07-16             2018-03-12        &lt;NA&gt;       0,44
+## 138               2018-03-28             2018-04-18 T9203133654       0,44
+## 139               2018-04-04             2018-01-12 T9154948134       0,36
+## 140               2017-01-27             2018-11-07 T9171600655       1,98
+## 141               2018-03-06             2018-10-17 T9197688949       0,24
+## 142               2017-04-11             2018-05-21 T9133180631       0,08</code></pre>
+<p>Let’s write the data frame into a csv file with <em>write_csv()</em> function from <strong>tidyverse</strong>’s <strong>readr</strong> package.</p>
+<pre class="r"><code>write_csv(distribution_9_csv, 
+          file = &quot;index_files/anonymized_distribution_data_2019-04-16_2019-06-30.csv&quot;)</code></pre>
+<p>And this is what the anonymized columns look like when imported into Excel:</p>
+<div class="figure">
+<img src="images/anonymized_distribution_data.jpg" style="width:100.0%" alt="" />
+<p class="caption">fig. 4 - Anonymized distribution data</p>
+</div>
+<p>Let’s compare it to the original, once more:</p>
+<div class="figure">
+<img src="images/Rask_Antti_Lennart_2019-04-16_2019-06-30.jpg" style="width:100.0%" alt="" />
+<p class="caption">fig. 5 - Original document</p>
+</div>
+<p>I don’t know about you, but I’m actually pretty happy with the end result!</p>
+<p>We could clean the anonymized one a little bit more by removing the <em>NAs</em>, but they are better suited to the situation, since the values are actually missing. So, we’ll leave them as they are at this point.</p>
+</div>
+<div id="conclusion" class="section level2">
+<h2>10. Conclusion</h2>
+<p>Wow, that was a little longer than I anticipated when starting to write the blog post.</p>
+<p>And as I mentioned earlier, there is a smaller blog post coming up about localizing the <strong>Rightsholder’s Name</strong> part for my Finnish audience. Well, the mechanisms will work regardless of the nationality. But the example will be a Finnish one.</p>
+<p>I hope you had as much fun and/or learned something new about R. I know I did!</p>
+<p>If you’ve read this far, thanks for your time and interest! If you have any questions or comments, don’t hesitate to contact me on LinkedIn (since I still haven’t managed to add the Disqus module for comments, but I’m <strong>still</strong> working on it)!</p>
+</div>
+</div>
