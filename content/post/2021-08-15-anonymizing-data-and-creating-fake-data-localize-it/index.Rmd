@@ -195,7 +195,7 @@ str_glue(
 )
 ```
 
-Here it is, _pièce de résistance_, the random _Finnish_ name generator! Now, on this blog post, there's one static name that is shown. But if you copy the code and do it yourself, you can run that bit again and again and again and see an endless number of combinations.
+Here it is, _pièce de résistance_, the random _Finnish_ name generator! Each time you refresh the page, a new first name - last name combination will appear.
 
 If you ask a person to give a random Finnish name, most of the time they will come up with something that you could guess quite easily (if you know Finnish names).We humans tend to be pretty unimaginative given these kinds of tasks. 
 
