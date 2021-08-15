@@ -1,0 +1,261 @@
+---
+title: Anonymizing Data and Creating Fake Data - Localize It!
+author: Antti Rask
+date: '2021-08-15'
+slug: anonymizing-data-and-creating-fake-data-localize-it
+categories:
+  - R
+tags:
+  - data anonymization
+  - DVV
+  - readxl
+  - fake data
+  - tidyverse
+lastmod: '2021-08-15T01:24:15+03:00'
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
+```
+
+# Intro
+
+The previous [blog post](https://youcanbeapirate.com/2021/06/27/anonymizing-data-and-creating-fake-data/) was all about creating fake data and anonymizing existing data. In it I mentioned a fun alternative to __charlatan__ for creating fake people names for the Finnish market. Let's get to it!
+
+First, let's see where the data can be found. Then we'll put together a simple random Finnish name generator. Finally, we can utilize it to anonymize the names from the data set we used last time.
+
+As you will see, this time around we'll be only using the basic tools like __base R__ and __tidyverse__ (which __readxl__ is a part of, even though it needs to be loaded separately). No special packages this time. It's all about the imagination!
+
+I’m assuming you’re using RStudio as your IDE (Integrated Development Environment). I’m sure most of this can be done with using something else as well.
+
+## 1. Get the data
+
+We're going to get the name data from the Finnish open data portal _avoindata.fi_. They would have an API (Application Programming Interface) we could use to fetch the data, but let's save that for a separate blog post. Instead, we'll be downloading the data as excel files from the website:
+
+![fig. 1 - The Finnish open data portal, avoindata.fi](images/avoindata_1.jpg){width=100%}
+
+Let's download the two files, _Etunimitilasto 2021-08-09 DVV_ for the first names and _Sukunimitilasto 2021-08-09 DVV_ for the last names.
+
+## 2. Let's get ready
+
+Okay, time to see what the files tell us. Let's first load the necessary packages.
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+# Prerequisite to everything
+
+library(readxl)
+# My go-to package for reading Excel files
+```
+
+Let's use the handy _excel_sheets()_ function from the __readxl__ package to see what kinds of sheets the files contain. No need to open the files in _Excel_ first, or read in every sheet, IF the sheet naming is done well!
+
+```{R}
+# Since we'll probably need the file paths more than once, let's give them names that are easier to read and write.
+first_names <- "index_files/etunimitilasto-2021-08-09-dvv.xlsx"
+last_names <- "index_files/sukunimitilasto-2021-08-09-dvv.xlsx"
+```
+
+```{R}
+excel_sheets(path = first_names)
+```
+
+```{R}
+excel_sheets(path = last_names)
+```
+
+Now, even though we fetched these files from the English page of avoindata.fi, everything seems to be in Finnish. Lucky for you, I happen to know Finnish and can translate!
+
+__first_names__ 
+
+>
+* Men, all
+* Men, first
+* Men, other
+* Women, all
+* Women, first
+* Women, other
+* Accompanying note
+
+
+__last_names__
+
+>
+* Names 
+* Accompanying note
+
+For our purposes here, we'll be needing the first names of both men and women and the last names. So let's get just those three, shall we?
+
+## 3. Read in the data with __readxl__
+
+Let's get the contents of the three sheets with _read_xlsx()_.
+
+```{R}
+names_fin_female <- read_xlsx(first_names, sheet = "Naiset ens")
+names_fin_male   <- read_xlsx(first_names, sheet = "Miehet ens")
+names_fin_last   <- read_xlsx(last_names) # Since we're using the first sheet, there's no need to specify it.
+```
+
+Let's see what we have here. A short Finnish lesson is in order.
+
+>
+* Etunimi = First name
+* Lukumäärä = Count
+* Sukunimi = Last name
+* yhteensä = Total
+
+```{R}
+head(names_fin_female)
+```
+
+```{R}
+head(names_fin_male)
+```
+
+```{R}
+head(names_fin_last)
+```
+
+I can confirm that these are Finnish names. The data seems to be arranged by the popularity of the names.
+
+Soon, we'll vectorize the names and create our name generator, but let's first add one column to the first name _tibbles_. We might not need this information for this exercise, but in a real-world scenario I would do it, to be prepared in case we do.
+
+## 4. Add a _gender_ column with _mutate()_
+
+So, we'll just add a gender column. That way, we don't lose the information when combining the two _tibbles_ and we'll be able to filter the data better, if needed.
+
+```{R}
+names_fin_female <- names_fin_female %>% 
+  mutate(gender = "female")
+```
+
+```{R}
+names_fin_female
+```
+
+```{R}
+names_fin_male <- names_fin_male %>% 
+  mutate(gender = "male")
+```
+
+```{R}
+names_fin_male
+```
+
+Alright, we're now ready to combine the two!
+
+## 5. A Tale of Two Tibbles
+
+We'll use __base R__'s _rbind()_ for combining the two _tibbles_ containing female and male first names. Since they have an identical column structure, it's a rather simple task.
+
+```{R}
+names_fin_first <- rbind(names_fin_female, names_fin_male)
+```
+
+Using _slice_sample()_ from __dplyr__ (part of the __tidyverse__), we can see what a random sample from the new _tibble_ looks like.
+
+```{R}
+slice_sample(names_fin_first, n = 10)
+```
+
+## 6. Create the vectors to be used in the random name generator
+
+Again, a fairly simple task. We'll pluck the first and last names from the two _tibbles_ as two new vectors.
+
+```{R}
+names_fin_first_vec <- names_fin_first$Etunimi
+names_fin_last_vec  <- names_fin_last$Sukunimi
+```
+
+```{R}
+names_fin_first_vec
+```
+
+```{R}
+names_fin_last_vec
+```
+
+There you have, listed, most of the Finnish first and last names. Time to put them into good use! 
+
+> Fun fact: You need to have at least five people with the same name to have been included in this data set.
+
+## 7. Create the random name generator
+
+We only have to take a random sample of one from both of the created vectors.
+
+```{R}
+first_name_random <- sample(names_fin_first_vec, 1)
+last_name_random  <- sample(names_fin_last_vec, 1)
+```
+
+And then we just use _str_glue()_ from __stringr__ (again, part of the __tidyverse__) to create one string from the two.
+
+```{R}
+str_glue(
+  "{first_name_random} {last_name_random}"
+)
+```
+
+Here it is, _pièce de résistance_, the random _Finnish_ name generator! Each time you refresh the page, a new first name - last name combination will appear.
+
+If you ask a person to give a random Finnish name, most of the time they will come up with something that you could guess quite easily (if you know Finnish names).We humans tend to be pretty unimaginative given these kinds of tasks. 
+
+Fortunately, the computer doesn't have that problem (and also has a much bigger pool of names to choose from than we usually do).
+
+## 8. Use the random name generator with the previous data
+
+As promised, here is the random name generator in action with the data from our [previous exercise](https://youcanbeapirate.com/2021/06/27/anonymizing-data-and-creating-fake-data/), that you should probably check out first for the context.
+
+This is the csv file that we ended up with:
+
+```{R, warning=FALSE, message=FALSE}
+anonymized_distribution_data <- read_csv(
+  "index_files/anonymized_distribution_data_2019-04-16_2019-06-30.csv",
+  col_names = c(
+    "work_number", 
+    "work_title", 
+    "rightsholder_ipi_number",
+    "rightsholder_name",
+    "rightsholder_role",
+    "rightsholder_share_pct",
+    "distribution_category_1",
+    "distribution_category_2",
+    "distribution_category_3",
+    "venue_name",
+    "performer_name",
+    "performance_date_start",
+    "performance_date_end",
+    "iswc_code",
+    "amount_eur"
+  ),
+  
+  # Skip the first row with the titles on it:
+  skip = 1
+)
+```
+
+```{R}
+anonymized_distribution_data
+```
+
+Now we're interested in replacing Brisa's name in the rightsholder_name column with one from our new random name generator.
+
+All it takes is inserting the previous _str_glue()_ function to a _mutate()_ function.
+
+```{R}
+anonymized_distribution_data %>% 
+  mutate(
+    rightsholder_name = str_glue("{first_name_random} {last_name_random}")
+  )
+```
+
+Voilà!
+
+## 9. Conclusion
+
+Although we used names (and Finnish names at that) for this exercise, I'm sure you can already see other possibilities for this short snippet of code.
+
+What's next?
+
+As I mentioned earlier, I'm going to write a very basic post about using an _API_. I remember, not that long ago, how daunting they seemed at first, but I've since gotten more comfortable about using them and wish to share an example with anyone who's doubting whether they should get to know them.
+
+If you’ve read this far, thanks for your time and interest, I hope you had fun and/or learned something new! If you have any questions or comments, don’t hesitate to contact me on LinkedIn (since I still haven’t managed to add the Disqus module for comments, but I'll either get it working or try something different)!
