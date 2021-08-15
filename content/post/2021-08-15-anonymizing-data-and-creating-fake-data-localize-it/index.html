@@ -165,46 +165,18 @@ names_fin_last   &lt;- read_xlsx(last_names) # Since we&#39;re using the first s
 <p>Using <em>slice_sample()</em> from <strong>dplyr</strong> (part of the <strong>tidyverse</strong>), we can see what a random sample from the new <em>tibble</em> looks like.</p>
 <pre class="r"><code>slice_sample(names_fin_first, n = 10)
 ## # A tibble: 10 x 3
-<<<<<<< HEAD
-##    Etunimi       Lukumäärä gender
-##    &lt;chr&gt;             &lt;dbl&gt; &lt;chr&gt; 
-##  1 Konrad               66 male  
-##  2 Aliina              369 female
-##  3 Anna-Kristina        21 female
-##  4 Matin                20 male  
-##  5 Inez                 89 female
-##  6 Hayder               23 male  
-##  7 Lucinda              21 female
-##  8 Julien               23 male  
-##  9 Klára                 6 female
-## 10 Jenna-Emilia         10 female</code></pre>
-||||||| fce1638
 ##    Etunimi      Lukumäärä gender
 ##    &lt;chr&gt;            &lt;dbl&gt; &lt;chr&gt; 
-##  1 Jalal               18 male  
-##  2 Eeben                7 male  
-##  3 Juan               147 male  
-##  4 Jesmiina             6 female
-##  5 Asmo               344 male  
-##  6 Manal               20 female
-##  7 Akash                5 male  
-##  8 Riikka-Tiina         5 female
-##  9 Harro               10 male  
-## 10 Esta                 5 female</code></pre>
-=======
-##    Etunimi       Lukumäärä gender
-##    &lt;chr&gt;             &lt;dbl&gt; &lt;chr&gt; 
-##  1 Pian                 15 female
-##  2 Arttu-Pekka          36 male  
-##  3 Thom                  6 male  
-##  4 Auni                248 female
-##  5 Raineri              51 male  
-##  6 Martti-Mikael         8 male  
-##  7 Arja-Maija           19 female
-##  8 Minja-Maria           9 female
-##  9 Viljaana              5 female
-## 10 Roman               342 male</code></pre>
->>>>>>> master
+##  1 Marja-Riikka        10 female
+##  2 Adama                6 male  
+##  3 Alaa                33 male  
+##  4 Ove                287 male  
+##  5 Arezo               11 female
+##  6 Rani                 8 female
+##  7 Madeline            22 female
+##  8 Ravil                5 male  
+##  9 Evia                28 female
+## 10 Emmi-Riikka         18 female</code></pre>
 </div>
 <div id="create-the-vectors-to-be-used-in-the-random-name-generator" class="section level2">
 <h2>6. Create the vectors to be used in the random name generator</h2>
@@ -15480,16 +15452,8 @@ last_name_random  &lt;- sample(names_fin_last_vec, 1)</code></pre>
 <pre class="r"><code>str_glue(
   &quot;{first_name_random} {last_name_random}&quot;
 )
-<<<<<<< HEAD
-## Aasiya Suomela</code></pre>
+## Märt Niittyviita</code></pre>
 <p>Here it is, <em>pièce de résistance</em>, the random <em>Finnish</em> name generator! Now, on this blog post, there’s one static name that is shown. But if you copy the code and do it yourself, you can run that bit again and again and again and see an endless number of combinations.</p>
-||||||| fce1638
-## Amaia Erkas</code></pre>
-<p>Here it is, <em>pièce de résistance</em>, the random <em>Finnish</em> name generator! Each time you refresh the page, a new first name - last name combination will appear.</p>
-=======
-## Jaakoppi Munck</code></pre>
-<p>Here it is, <em>pièce de résistance</em>, the random <em>Finnish</em> name generator! Each time you refresh the page, a new first name - last name combination will appear.</p>
->>>>>>> master
 <p>If you ask a person to give a random Finnish name, most of the time they will come up with something that you could guess quite easily (if you know Finnish names).We humans tend to be pretty unimaginative given these kinds of tasks.</p>
 <p>Fortunately, the computer doesn’t have that problem (and also has a much bigger pool of names to choose from than we usually do).</p>
 </div>
@@ -15548,40 +15512,16 @@ last_name_random  &lt;- sample(names_fin_last_vec, 1)</code></pre>
 ## # A tibble: 142 x 15
 ##    work_number work_title   rightsholder_ipi_~ rightsholder_na~ rightsholder_ro~
 ##          &lt;dbl&gt; &lt;chr&gt;                     &lt;dbl&gt; &lt;glue&gt;           &lt;chr&gt;           
-<<<<<<< HEAD
-##  1    40281254 All Night L~          370920627 Aasiya Suomela   Arranger        
-##  2    34235492 NYPD Blue             597137869 Aasiya Suomela   Arranger        
-##  3    32917123 Garchomp               69762901 Aasiya Suomela   Arranger        
-##  4    44167446 NCIS                  239954359 Aasiya Suomela   Arranger        
-##  5    41563174 The Fifth E~          445863699 Aasiya Suomela   Arranger        
-##  6    42788497 Barbican              174888075 Aasiya Suomela   Arranger        
-##  7    40502187 Lickitung             149157191 Aasiya Suomela   Arranger        
-##  8    34163009 Up                    607932918 Aasiya Suomela   Arranger        
-##  9    42035276 Skuntank              305469216 Aasiya Suomela   Arranger        
-## 10    30603853 The Backyar~          519470211 Aasiya Suomela   Arranger        
-||||||| fce1638
-##  1    40281254 All Night L~          370920627 Amaia Erkas      Arranger        
-##  2    34235492 NYPD Blue             597137869 Amaia Erkas      Arranger        
-##  3    32917123 Garchomp               69762901 Amaia Erkas      Arranger        
-##  4    44167446 NCIS                  239954359 Amaia Erkas      Arranger        
-##  5    41563174 The Fifth E~          445863699 Amaia Erkas      Arranger        
-##  6    42788497 Barbican              174888075 Amaia Erkas      Arranger        
-##  7    40502187 Lickitung             149157191 Amaia Erkas      Arranger        
-##  8    34163009 Up                    607932918 Amaia Erkas      Arranger        
-##  9    42035276 Skuntank              305469216 Amaia Erkas      Arranger        
-## 10    30603853 The Backyar~          519470211 Amaia Erkas      Arranger        
-=======
-##  1    40281254 All Night L~          370920627 Jaakoppi Munck   Arranger        
-##  2    34235492 NYPD Blue             597137869 Jaakoppi Munck   Arranger        
-##  3    32917123 Garchomp               69762901 Jaakoppi Munck   Arranger        
-##  4    44167446 NCIS                  239954359 Jaakoppi Munck   Arranger        
-##  5    41563174 The Fifth E~          445863699 Jaakoppi Munck   Arranger        
-##  6    42788497 Barbican              174888075 Jaakoppi Munck   Arranger        
-##  7    40502187 Lickitung             149157191 Jaakoppi Munck   Arranger        
-##  8    34163009 Up                    607932918 Jaakoppi Munck   Arranger        
-##  9    42035276 Skuntank              305469216 Jaakoppi Munck   Arranger        
-## 10    30603853 The Backyar~          519470211 Jaakoppi Munck   Arranger        
->>>>>>> master
+##  1    40281254 All Night L~          370920627 Märt Niittyviita Arranger        
+##  2    34235492 NYPD Blue             597137869 Märt Niittyviita Arranger        
+##  3    32917123 Garchomp               69762901 Märt Niittyviita Arranger        
+##  4    44167446 NCIS                  239954359 Märt Niittyviita Arranger        
+##  5    41563174 The Fifth E~          445863699 Märt Niittyviita Arranger        
+##  6    42788497 Barbican              174888075 Märt Niittyviita Arranger        
+##  7    40502187 Lickitung             149157191 Märt Niittyviita Arranger        
+##  8    34163009 Up                    607932918 Märt Niittyviita Arranger        
+##  9    42035276 Skuntank              305469216 Märt Niittyviita Arranger        
+## 10    30603853 The Backyar~          519470211 Märt Niittyviita Arranger        
 ## # ... with 132 more rows, and 10 more variables: rightsholder_share_pct &lt;dbl&gt;,
 ## #   distribution_category_1 &lt;chr&gt;, distribution_category_2 &lt;chr&gt;,
 ## #   distribution_category_3 &lt;chr&gt;, venue_name &lt;chr&gt;, performer_name &lt;chr&gt;,
