@@ -48,6 +48,7 @@ params:
     # width: 50
   mobileMenu: false
   poweredby: true
+  rssLimit: 5
 markup:
   defaultMarkdownHandler: goldmark
   goldmark:
