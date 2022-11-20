@@ -1,6 +1,6 @@
 baseurl: https://youcanbeapirate.com/
 languageCode: en-us
-title: why join the navy when you can be a pi{R}ate
+title:
 theme: "hugo-theme-zen"
 googleAnalytics: "G-FZGERRGYQM"
 disqusShortname: "youcanbeapirate"
@@ -34,21 +34,28 @@ params:
   MathJaxVersion: 2.7.5
   contact: "antti.rask@teosto.fi"
   description: A website built through Hugo and blogdown.
-  favicon: favicon.ico
+  favicon: "favicon.ico"
   highlightjsCDN: //cdnjs.cloudflare.com/ajax/libs
   highlightjsLang:
     - r
     - yaml
   highlightjsTheme: github
   highlightjsVersion: 9.12.0
-  logo: false
-    # alt: Logo
+  logoPath: public/images/logo.png
+  logo:
+    alt: youcanbeapiRate
     # height: 50
-    # url: logo.png
+    url: public/images/logo.png
     # width: 50
   mobileMenu: false
   poweredby: true
   rssLimit: 4
+  utterances:
+    issue_term: pathname
+    label: 'comments'
+    repo_name: AnttiRask/blog
+    theme: boxy-light
+    use_utterances: yes
 markup:
   defaultMarkdownHandler: goldmark
   goldmark:
