@@ -1,0 +1,721 @@
+---
+title: "How to [insert topic here] with R: Using the OpenAI API"
+author: Antti Rask
+date: '2022-11-20'
+slug: how-to-insert-topic-here-with-r-using-the-openai-api
+categories:
+  - R
+tags:
+  - 'DALL-E 2'
+  - generative AI
+  - OpenAI
+  - API
+  - httr
+  - tidyverse
+  - lubridate
+  - gt
+  - for loop
+lastmod: '2022-11-20T13:16:03+02:00'
+---
+
+
+
+<div id="intro" class="section level1">
+<h1>Intro</h1>
+<p>The previous <a href="https://www.youcanbeapirate.com/2021/08/15/anonymizing-data-and-creating-fake-data-localize-it/">blog post</a> came out over a year ago! I’m sorry I haven’t written here more often, but that’s about to change. While I haven’t been as active on this site, I’ve been more active on <a href="https://www.linkedin.com/in/anttirask/">LinkedIn</a> and <a href="https://github.com/AnttiRask/">GitHub</a>. That has now sparked the need to write in a longer format again.</p>
+<p>Anyway, let’s get on with it! I promised in the last post to write about APIs next, didn’t I? And that’s what I’m going to do here. It’s a different API than what I had in mind back then, but this one’s pretty exciting too!</p>
+<p>I’ve recently gotten more into AI-generated art. I’m no expert, of course, but I’ve tried the free version of DALL-E 2, created by OpenAI. I had used it online, on my phone, but when I saw <a href="https://openai.com/blog/dall-e-api-now-available-in-public-beta/">“DALL-E API Now Available in Public Beta”</a> I knew I had to try it.</p>
+<p>So, what are we doing here? The object here is to learn</p>
+<ul>
+<li>how to create an API request</li>
+<li>what to do with the content returned by this particular API request</li>
+<li>how to download and save many files using a for loop</li>
+<li>how to create a text file to save all the metadata from that API request</li>
+</ul>
+<p>And the most important question is, why are we doing this? I can only speak for myself, but I find AI-generated art fascinating. And to be able to tap into that source of creativity like this is my driver here.</p>
+<p>I’ll show you one example before we start. DALL-E 2 created this next image using the following text prompt as input:</p>
+<blockquote>
+<p>“Living on the edge”</p>
+</blockquote>
+<div class="figure">
+<img src="images/openai-api-dall-e-2-created-image-living-on-the-edge.png" alt="" />
+<p class="caption">fig. 1 - An example image created by DALL-E 2</p>
+</div>
+<p>Now, I’m not going to go into the art of coming up with a good prompt in any more detail, but there are a lot of examples online and here’s <a href="https://mpost.io/top-50-text-to-image-prompts-for-ai-art-generators-midjourney-and-dall-e/">one of them</a>.</p>
+<div id="lets-get-ready" class="section level2">
+<h2>1. Let’s get ready</h2>
+<p>The original <a href="https://beta.openai.com/docs/guides/images">documentation</a> is written for only <a href="https://www.python.org/">Python</a>, <a href="https://nodejs.org/en/">Node.js</a>, and <a href="https://curl.se/">cURL</a>. Now, that doesn’t have to be a problem. You have to be a little creative, that’s all. In fact, the cURL one contains all the necessary information.</p>
+<div class="figure">
+<img src="images/openai-api-dall-e-2-image-creation-curl.jpg" style="width:100.0%" alt="" />
+<p class="caption">fig. 2 - cURL code for the image creation endpoint</p>
+</div>
+<div id="lets-first-go-through-the-curl-code-line-by-line" class="section level3">
+<h3>Let’s first go through the cURL code, line by line:</h3>
+<ol style="list-style-type: decimal">
+<li>Here we have our URL: <a href="https://api.openai.com/v1/images/generations" class="uri">https://api.openai.com/v1/images/generations</a>.</li>
+<li>Content type is <a href="https://www.json.org/json-en.html">json</a>. <strong>-H</strong> indicates it’s for the header. But there’s actually an <strong>encode</strong> parameter in <strong>{httr}</strong>’s <em>POST()</em> function. We will insert this information there instead.</li>
+<li>Authorization is something we will need to put into a header. Also, there’s that <strong>$OPENAI_API_KEY</strong> part. We’ll get back to it.</li>
+<li><strong>-d</strong> is indicating that the following is the body of the request:</li>
+<li><strong>Prompt</strong> is the text prompt we will need to change to get the image we want</li>
+<li><strong>N</strong> is the number of images that DALL-E 2 will produce with one API call</li>
+<li><strong>Size</strong> is the pixel size of the image. We’ll get back to it in more detail, but it’s good to realize already that it will affect the price.</li>
+</ol>
+</div>
+<div id="about-pricing" class="section level3">
+<h3>About pricing</h3>
+<p>It’s also good to start talking about money already. OpenAIs API isn’t free to use. You can see the pricing below but should check the most recent prices <a href="https://openai.com/api/pricing/">here</a>. <br>
+<br></p>
+<div id="siaaqyuiiq" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#siaaqyuiiq .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#siaaqyuiiq .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#siaaqyuiiq .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#siaaqyuiiq .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#siaaqyuiiq .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#siaaqyuiiq .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#siaaqyuiiq .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#siaaqyuiiq .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#siaaqyuiiq .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#siaaqyuiiq .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#siaaqyuiiq .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#siaaqyuiiq .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#siaaqyuiiq .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#siaaqyuiiq .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#siaaqyuiiq .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#siaaqyuiiq .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#siaaqyuiiq .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#siaaqyuiiq .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#siaaqyuiiq .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#siaaqyuiiq .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#siaaqyuiiq .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#siaaqyuiiq .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#siaaqyuiiq .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#siaaqyuiiq .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#siaaqyuiiq .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#siaaqyuiiq .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#siaaqyuiiq .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#siaaqyuiiq .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#siaaqyuiiq .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#siaaqyuiiq .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#siaaqyuiiq .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#siaaqyuiiq .gt_left {
+  text-align: left;
+}
+
+#siaaqyuiiq .gt_center {
+  text-align: center;
+}
+
+#siaaqyuiiq .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#siaaqyuiiq .gt_font_normal {
+  font-weight: normal;
+}
+
+#siaaqyuiiq .gt_font_bold {
+  font-weight: bold;
+}
+
+#siaaqyuiiq .gt_font_italic {
+  font-style: italic;
+}
+
+#siaaqyuiiq .gt_super {
+  font-size: 65%;
+}
+
+#siaaqyuiiq .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#siaaqyuiiq .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#siaaqyuiiq .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#siaaqyuiiq .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#siaaqyuiiq .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#siaaqyuiiq .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#siaaqyuiiq .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+<table class="gt_table">
+  <thead class="gt_header">
+    <tr>
+      <td colspan="2" class="gt_heading gt_title gt_font_normal" style>Image models</td>
+    </tr>
+    <tr>
+      <td colspan="2" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style>on 2022-11-20</td>
+    </tr>
+  </thead>
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col">Resolution</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col">Price</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">1024×1024</td>
+<td class="gt_row gt_left">$0.020 / image</td></tr>
+    <tr><td class="gt_row gt_left">512×512</td>
+<td class="gt_row gt_left">$0.018 / image</td></tr>
+    <tr><td class="gt_row gt_left">256×256</td>
+<td class="gt_row gt_left">$0.016 / image</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p><br></p>
+<p>There are also language models that are available (with a different pricing structure). But that is a topic for another blog post another time.</p>
+</div>
+<div id="about-the-different-curl-r-packages" class="section level3">
+<h3>About the different cURL R packages</h3>
+<p>One last thing before we start. Even if the cURL code inspired us, we don’t have to use the cURL packages for R to use the API. And there are at least two of those that I know of: <a href="https://cran.r-project.org/web/packages/RCurl/index.html">{RCurl}</a> and <a href="https://cran.r-project.org/web/packages/curl/index.html">{curl}</a>. But since <a href="https://httr.r-lib.org/">{httr}</a> by Hadley Wickham is more intuitive to use, we’ll stick to that one.</p>
+</div>
+</div>
+<div id="signing-up-to-get-the-openai-api-key" class="section level2">
+<h2>2. Signing up to get the OpenAI API key</h2>
+<p>Right, I won’t go through this part of the process in any great detail. But you do need to sign up to <a href="https://beta.openai.com/signup/">OpenAI</a> to be able to use the API. Sign up and give your credit card information. At the moment of writing you get “$18 in free credit that you can use during your first 3 months”, though. Use it wisely and also set up a limit you’re comfortable using per month!</p>
+<p>After you have signed up, you need to get your OpenAI API key. You know, the one that will replace <strong>$OPENAI_API_KEY</strong> in our upcoming code. Once you have signed up and signed in, go to <strong>Personal</strong> &gt; <strong>View API Keys</strong> and tap <strong>+ Create new secret key</strong>. Copy the key and store it using something like <a href="https://www.geeksforgeeks.org/managing-secrets-and-auth-details-in-r-language/">this</a>.</p>
+</div>
+<div id="loading-the-libraries" class="section level2">
+<h2>3. Loading the libraries</h2>
+<p>Let’s load the necessary packages. And as you can see, I use the terms packages and libraries interchangeably. If you don’t have one or more of them, install them first with the <em>install.packages()</em> function.</p>
+<pre class="r"><code>library(httr)       # for making the API request
+library(tidyverse)  # for everything else
+library(lubridate)  # for manipulating the time stamp</code></pre>
+</div>
+<div id="lets-create-the-api-request-with-httr" class="section level2">
+<h2>4. Let’s create the API request with <strong>httr</strong></h2>
+<div id="lets-start-with-the-arguments" class="section level3">
+<h3>Let’s start with the arguments</h3>
+<p>Let’s go through them in the same order as they were in the documentation. We are skipping lines 4 and 8, though, as they don’t contain any important information. As you can see, it’s about recognizing the elements and writing them in the format that <strong>httr</strong> uses. When doing something like this, read the <a href="https://httr.r-lib.org/">documentation</a>, try things out and see what works (and what doesn’t).</p>
+<p>Now, it’s important you use that API key you received. Switch it with that <strong>$OPENAI_API_KEY</strong>. Again, if you are going to use GitHub, you can store it and use it using something like <a href="https://www.geeksforgeeks.org/managing-secrets-and-auth-details-in-r-language/">this</a>. There’s a <a href="https://github.com/AnttiRask/how_to_insert_topic_here_with_R/tree/main/how_to_use_an_api_with_R">GitHub repo</a> I’ve made that gives you a better idea of what a finished working script looks like.</p>
+<pre class="r"><code># 1. curl https://api.openai.com/v1/images/generations \
+url_api       &lt;- &quot;https://api.openai.com/v1/images/generations&quot;
+
+# 2. -H &#39;Content-Type: application/json&#39; \
+encode        &lt;- &quot;json&quot;
+
+# 3. -H &quot;Authorization: Bearer $OPENAI_API_KEY&quot; \
+authorization &lt;- &quot;Bearer $OPENAI_API_KEY&quot;
+
+# 5. &quot;prompt&quot;: &quot;a white siamese cat&quot;,
+prompt        &lt;- &quot;A hand drawn sketch of a UFO&quot;
+
+# 6. &quot;n&quot;: 1,
+n             &lt;- 1
+
+# 7. &quot;size&quot;: &quot;1024x1024&quot;
+size          &lt;- &quot;1024x1024&quot;</code></pre>
+</div>
+<div id="lets-then-create-the-request" class="section level3">
+<h3>Let’s then create the request</h3>
+<p>First, gather the arguments as the body of the request:</p>
+<pre class="r"><code>body &lt;- list(
+    prompt = prompt,
+    n      = n,
+    size   = size
+)
+
+body
+## $prompt
+## [1] &quot;A hand drawn sketch of a UFO&quot;
+## 
+## $n
+## [1] 1
+## 
+## $size
+## [1] &quot;1024x1024&quot;</code></pre>
+<p>We can see that the arguments are working as they should. And now they are in the list format.</p>
+<p>Then, the request itself:</p>
+<pre class="r"><code>request &lt;- POST(
+    url    = url_api,
+    add_headers(Authorization = authorization),
+    body   = body,
+    encode = encode
+)
+
+request
+## Response [https://api.openai.com/v1/images/generations]
+##   Date: 2022-11-20 11:58
+##   Status: 200
+##   Content-Type: application/json
+##   Size: 547 B
+## {
+##   &quot;created&quot;: 1668945528,
+##   &quot;data&quot;: [
+##     {
+##       &quot;url&quot;: &quot;https://oaidalleapiprodscus.blob.core.windows.net/private/org-N...
+##     }
+##   ]
+## }</code></pre>
+<p>With that POST request, we get as many images (or URLs for those images, to be exact) as we chose earlier. This is also the part of the script that requires payment.</p>
+</div>
+<div id="finally-lets-take-a-look-at-the-content" class="section level3">
+<h3>Finally, let’s take a look at the content</h3>
+<pre class="r"><code>request %&gt;%
+    content() %&gt;%
+    glimpse()
+## List of 2
+##  $ created: int 1668945528
+##  $ data   :List of 1
+##   ..$ :List of 1
+##   .. ..$ url: chr &quot;https://oaidalleapiprodscus.blob.core.windows.net/private/org-NzPmYnKPtA2OfifpIfjpaaGc/user-21McymnFfhJyBoKrAOI&quot;| __truncated__</code></pre>
+<p>That <em>content()</em> function from <strong>{httr}</strong> converts the data from the <em>json</em> format that it arrived in into a list with two elements: <strong>created</strong> (time stamp in seconds) and <strong>data</strong> (url(s)). Next we’ll take these individual elements as they will help us get those images. So far we only have text data!</p>
+</div>
+</div>
+<div id="saving-the-individual-elements" class="section level2">
+<h2>5. Saving the individual elements</h2>
+<div id="time-stamp-created" class="section level3">
+<h3>Time stamp (created)</h3>
+<p>The idea here is to use the contents we saw to take the next necessary steps. Let’s first take that created value (time of creation). Turn it into an <a href="https://r4ds.hadley.nz/datetimes.html#from-other-types">date-time</a> object. Then turn it into a string, so that we can use it as the basis for the <strong>filename</strong> when we get there.</p>
+<pre class="r"><code>created &lt;- request %&gt;%
+    content() %&gt;%
+
+    # We take the first element &#39;created&#39; of the content (in the list format)
+    pluck(1) %&gt;%
+
+    # Then use {lubridate} to turn that number into a datetime object.
+    # We have to provide a timezone. You can see the list using this function:
+    # OlsonNames(). Mine happens to be &quot;Europe/Helsinki&quot;
+    as_datetime(tz = &quot;Europe/Helsinki&quot;) %&gt;%
+    ymd_hms() %&gt;%
+
+    # Finally, let&#39;s turn the datetime object to a string and replace the
+    # spaces and colons with dashes, so that the filename will be cleaner
+    as.character() %&gt;%
+    str_replace_all(&quot;\\s&quot;, &quot;-&quot;) %&gt;%
+    str_replace_all(&quot;\\:&quot;, &quot;-&quot;)
+
+created
+## [1] &quot;2022-11-20-13-58-48&quot;</code></pre>
+</div>
+<div id="urls" class="section level3">
+<h3>URL(s)</h3>
+<p>Next, let’s pluck the URL(s) from the requested <em>content</em> and make it/them a vector. We will use that vector to next download the image(s) from the temporary address the API has saved them.</p>
+<blockquote>
+<p>The URL(s) will expire in an hour! So you should run the script from start to finish when you’re ready. And in case you don’t know how it’s done, the easiest way to do it is to press Ctrl + Alt + R.</p>
+</blockquote>
+<pre class="r"><code>url_img &lt;- request %&gt;%
+    content() %&gt;%
+    pluck(2) %&gt;%
+    unlist() %&gt;%
+    as.vector()
+
+url_img
+## [1] &quot;https://oaidalleapiprodscus.blob.core.windows.net/private/org-NzPmYnKPtA2OfifpIfjpaaGc/user-21McymnFfhJyBoKrAOIPiG9e/img-036xIMYVvblHqY3dQLerbCeo.png?st=2022-11-20T10%3A58%3A48Z&amp;se=2022-11-20T12%3A58%3A48Z&amp;sp=r&amp;sv=2021-08-06&amp;sr=b&amp;rscd=inline&amp;rsct=image/png&amp;skoid=6aaadede-4fb3-4698-a8f6-684d7786b067&amp;sktid=a48cca56-e6da-484e-a814-9c849652bcb3&amp;skt=2022-11-19T22%3A16%3A21Z&amp;ske=2022-11-20T22%3A16%3A21Z&amp;sks=b&amp;skv=2021-08-06&amp;sig=5X8Ogg1kVV4mviLw/J1p8R%2BoxU3uTSBI6YTEwVYNZ7o%3D&quot;</code></pre>
+</div>
+</div>
+<div id="downloading-the-images" class="section level2">
+<h2>6. Downloading the images</h2>
+<p>We’ll be using a <a href="https://r4ds.hadley.nz/base-r#for-loops">for loop</a> to go through each of the URLs contained in the vector <em>url_img</em> we created.</p>
+<p>Most of the packages we’ve been using so far have been from the <strong>{tidyverse}</strong> family of packages. But for this part we’ll be using base R functions: <em>for loop</em>, <em>seq_along</em>, <em>paste0</em> and <em>download.file</em>. I’m quite certain there is a ‘tidy’ way to do this with <strong>{purrr}</strong> &amp; co. but the following was the easiest/fastest way to the goal. You can always go back and update the code once it’s working.</p>
+<p>The code has are three parts:</p>
+<ol style="list-style-type: decimal">
+<li><strong>for (i in seq_along(url_img))</strong> sets up the for loop. You can read this in English: “For each URL found in the url_img vector run these following two parts”.</li>
+<li>Create the filename. We use the character string <strong>“dall-e”</strong>, the <strong>creation time stamp</strong>, <strong>“-”</strong>, and a running number at the end. The <strong>i</strong> means index. <br>
+For example: “dall-e-2022-11-05-22-16-12-1.png”</li>
+<li>Download the files mentioned in the <strong>url_img</strong>. <strong>Mode = “wb”</strong>, because we’re downloading binary files. Won’t work without it. Believe me, I’ve tried.</li>
+</ol>
+<pre class="r"><code>for (i in seq_along(url_img)) {
+
+    destfile &lt;- c(
+        paste0(
+            &quot;images/dall-e-&quot;,
+            created,
+            &quot;-&quot;,
+            i,
+            &quot;.png&quot;
+        )
+    )
+
+    download.file(url_img[i], destfile, mode = &quot;wb&quot;)
+    
+}</code></pre>
+<p>And voilà!</p>
+<div class="figure">
+<img src="images/dall-e-2022-11-06-02-42-06-1.png" alt="" />
+<p class="caption">fig. 3 - Another example image created by DALL-E</p>
+</div>
+</div>
+<div id="writing-the-metadata-in-a-.txt-file" class="section level2">
+<h2>7. Writing the metadata in a .txt file</h2>
+<div id="gather-the-metadata" class="section level3">
+<h3>Gather the metadata</h3>
+<p>In case you want to know how DALL-E 2 created a particular image (using which prompt etc.) or wish to use the
+URL (for an hour, remember it’s gone after that), we’ll gather all the info first.</p>
+<pre class="r"><code>metadata &lt;- tibble(
+    prompt,
+    n,
+    size,
+    created,
+    url_img,
+    destfile
+)</code></pre>
+</div>
+<div id="create-the-pathfilename" class="section level3">
+<h3>Create the path/filename</h3>
+<p>We’ll use one file for the image metadata (whether there are one or more images). And by using a similar naming convention, you can find everything without trouble.</p>
+<pre class="r"><code>file &lt;- str_glue(&quot;images/dall-e-{created}.txt&quot;)</code></pre>
+</div>
+<div id="write-the-.txt-file" class="section level3">
+<h3>Write the .txt file</h3>
+<p>As you can see, with <em>tibble</em> and <em>str_glue</em> we returned to the <strong>{tidyverse}</strong>. We’ll wrap things up with <em>write_delim</em>, a lesser-known function from the <em>{readr}</em> packages _write__ family of functions.</p>
+<p>I chose a .txt file for ease of use, but with the delimiters, it’s still easy enough to read in in a tabular format.</p>
+<pre class="r"><code>metadata %&gt;%
+    write_delim(
+        file  = file,
+        delim = &quot;;&quot;
+    )</code></pre>
+</div>
+<div id="the-end-result" class="section level3">
+<h3>The end result</h3>
+<p>And this is what it then looks like:</p>
+<div class="figure">
+<img src="images/openai-api-dall-e-2-metadata-txt.jpg" alt="" />
+<p class="caption">fig. 4 - An example .txt file containing the metadata</p>
+</div>
+</div>
+</div>
+<div id="conclusion" class="section level2">
+<h2>8. Conclusion</h2>
+<p>I guess it’s better not to make any grand promises since it took a year to fulfill the previous one.</p>
+<p>But I hope you had fun with this one. And I hope you have a good time using {httr} for OpenAI API or something completely different!</p>
+<p>I’m not promising anything, but I will probably be checking out the other APIs by OpenAI at some point. I’ll let you know if/when I do!</p>
+<p>And just to remind you, if you wish to have a functioning R script and don’t want to build it piece by piece, you can find it on my <a href="https://github.com/AnttiRask/how_to_insert_topic_here_with_R/tree/main/how_to_use_an_api_with_R">GitHub</a>.</p>
+<p>Cheers!</p>
+</div>
+</div>

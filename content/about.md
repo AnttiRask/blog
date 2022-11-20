@@ -8,7 +8,7 @@ This is my blog created with the [**blogdown**](https://github.com/rstudio/blogd
 
 # About Me
 
-I'm Antti Rask, currently living in Helsinki, Finland. I've always been curious about how everything works, but I started learning about data and data science in earnest late in 2019.
+I'm Antti Rask, currently living in Helsinki, Finland. I've always been curious about how everything works, but I started learning about data and data science in earnest in late 2019. I currently work as a Data Analytics Lead at [Teosto](https://www.teosto.fi/en/).
 
 I started this blog to document my data journey and if that also helps/inspires others on theirs, that's a win-win situation.
 
