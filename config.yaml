@@ -3,7 +3,7 @@ languageCode: en-us
 title:
 theme: "hugo-theme-zen"
 googleAnalytics: "G-FZGERRGYQM"
-disqusShortname: "youcanbeapirate"
+# disqusShortname: "youcanbeapirate"
 ignoreFiles:
   - \.Rmd$
   - \.Rmarkdown$
@@ -34,7 +34,7 @@ params:
   MathJaxVersion: 2.7.5
   contact: "antti.rask@teosto.fi"
   description: A website built through Hugo and blogdown.
-  favicon: "favicon.ico"
+  favicon: public/favicon.ico
   highlightjsCDN: //cdnjs.cloudflare.com/ajax/libs
   highlightjsLang:
     - r
@@ -44,18 +44,18 @@ params:
   logoPath: public/images/logo.png
   logo:
     alt: youcanbeapiRate
-    # height: 50
+    height: 1000
     url: public/images/logo.png
-    # width: 50
+    width: 2000
   mobileMenu: false
   poweredby: true
   rssLimit: 4
-  utterances:
-    issue_term: pathname
-    label: 'comments'
-    repo_name: AnttiRask/blog
-    theme: boxy-light
-    use_utterances: yes
+  # utterances:
+  #   issue_term: pathname
+  #   label: 'comments'
+  #   repo_name: AnttiRask/blog
+  #   theme: boxy-light
+  #   use_utterances: yes
 markup:
   defaultMarkdownHandler: goldmark
   goldmark:
